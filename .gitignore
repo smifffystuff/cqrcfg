@@ -7,3 +7,4 @@ node_modules/
 cqrcfg_deploy_key*
 *.code-workspace
 deploy_keys/
+local_setup/
