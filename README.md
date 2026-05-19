@@ -5,7 +5,7 @@ A production-ready Node.js microservice built with **Fastify** that provides a *
 ## Features
 
 - **High performance** - Built on Fastify for maximum throughput
-- **Swappable storage** - MongoDB, DynamoDB, or etcd
+- **Swappable storage** - MongoDB, DynamoDB, etcd, or Git
 - **Swappable notifications** - WebSocket, Kafka, or AMQP
 - Hierarchical JSON configuration storage
 - Subtree read/write operations (GET, PATCH, PUT, DELETE)
@@ -17,7 +17,7 @@ A production-ready Node.js microservice built with **Fastify** that provides a *
 ## Requirements
 
 - Node.js >= 20.0.0
-- Storage backend (MongoDB, DynamoDB, or etcd)
+- Storage backend (MongoDB, DynamoDB, etcd, or Git)
 - JWKs endpoint for token verification
 
 ## Quick Start
@@ -48,7 +48,7 @@ cp .env.example .env
 ```
 
 Required configuration:
-- `OIDC_JWKS_URI` - JWKs endpoint for token verification
+- `OIDC_JWKS_URIS` or `OIDC_ISSUERS` - At least one JWKS source for token verification
 
 ### 3. Start the server
 
@@ -59,13 +59,16 @@ npm start
 # Development (with auto-reload)
 npm run dev
 
+# Start mock OIDC server (in another terminal)
+npm run oidc
+
 # Start UI development server (in another terminal)
 npm run ui
 ```
 
 ## Web UI
 
-The project includes a React-based web UI for browsing and editing configurations.
+The project includes a React-based web UI for browsing and editing configurations. In production it runs on a Fastify server (`ui/server.js`) that serves the built SPA, injects runtime configuration, and proxies API/WebSocket requests to the backend.
 
 ### Running the UI
 
@@ -73,24 +76,24 @@ The project includes a React-based web UI for browsing and editing configuration
 # Install UI dependencies
 npm run ui:install
 
-# Start UI development server (proxies API to localhost:3000)
+# Start UI development server (proxies API to 127.0.0.1:3000)
 npm run ui
 
 # Build for production
 npm run ui:build
 ```
 
-The UI will be available at `http://localhost:5173` and requires a valid JWT token with appropriate permissions (`read`, `write`, `list`) to browse and edit configurations.
+The UI development server will be available at `http://localhost:5173` and requires a valid JWT token with appropriate permissions (`read`, `write`, `list`) to browse and edit configurations.
 
 ### Environment Themes
 
-The UI supports runtime theming to visually distinguish between environments (dev, int, prod). Themes are CSS files that override CSS variables.
+The UI supports runtime theming to visually distinguish between environments (dev, int, prod). Themes are CSS files that override CSS variables. The theme toggle cycles between Light, Dark, and Auto (system preference).
 
 **Available themes:**
-- `ui/public/themes/default.css` - Dark blue (default)
-- `ui/public/themes/dev.css` - Green accent
-- `ui/public/themes/int.css` - Blue accent
-- `ui/public/themes/prod.css` - Red accent
+- `ui/public/themes/light.css`, `dark.css` - Default (no env)
+- `ui/public/themes/dev-light.css`, `dev-dark.css` - Development (green accent)
+- `ui/public/themes/int-light.css`, `int-dark.css` - Integration (blue accent)
+- `ui/public/themes/prod-light.css`, `prod-dark.css` - Production (red accent)
 
 **CSS Variables:**
 ```css
@@ -137,6 +140,14 @@ docker compose down -v
 - **Mock OIDC**: http://localhost:8888 (token generator UI)
 - **MongoDB**: localhost:27017
 
+### MongoDB-Only Stack
+
+Use `docker-compose-mongo.yml` for a lightweight development setup with just MongoDB and Mock OIDC (no API or UI containers — run those locally):
+
+```bash
+docker compose -f docker-compose-mongo.yml up -d
+```
+
 ### Git Storage Backend
 
 Use `docker-compose.git.yml` for the git storage backend instead of MongoDB:
@@ -176,8 +187,12 @@ GIT_DATA_PATH=./data/git docker compose -f docker-compose.git.yml up -d
 | `GIT_PULL_INTERVAL` | `30000` | Interval between pulls in ms |
 | `GIT_SSH_KEY_PATH` | (none) | Path to SSH private key for remote access |
 | `GIT_SSH_KNOWN_HOSTS` | (none) | Path to known_hosts file |
+| `GIT_COMMIT_NAME_CLAIM` | (none) | JWT claim path for commit author name (dot notation, e.g. `username`) |
+| `GIT_COMMIT_EMAIL_CLAIM` | (none) | JWT claim path for commit author email (dot notation, e.g. `useremail`) |
 | `GIT_ENCRYPTION_SALT` | (none) | Hex-encoded 8-byte salt for encryption |
 | `GIT_ENCRYPTION_PASSWORD` | (none) | Password for encryption (both required to enable) |
+
+**Commit Author Attribution:** When `GIT_COMMIT_NAME_CLAIM` and `GIT_COMMIT_EMAIL_CLAIM` are set, the git backend extracts the commit author from the authenticated user's JWT claims. This allows individual config changes to be attributed to the user who made them. If the claims are not present in the token, the default `GIT_COMMIT_AUTHOR` is used.
 
 ### Getting a Token (Local Development)
 
@@ -225,7 +240,7 @@ The UI is configured via environment variables that generate a runtime config.js
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `UI_ENV` | `''` | Environment name displayed as badge (e.g., `dev`, `int`, `prod`) |
-| `UI_API_URL` | `/api` | API base URL (default proxied via nginx; set full URL for direct access) |
+| `UI_API_URL` | `/api` | API base URL (default proxied via Fastify server; set full URL for direct access) |
 | `UI_AUTH_HEADER` | `''` | HTTP header containing auth token (enables proxy auth mode) |
 | `UI_AUTH_PATTERN` | `''` | Regex pattern to extract token from header (capture group 1 used; default strips `Bearer ` prefix) |
 | `UI_NAME_CLAIM` | `sub` | JWT claim to use for display name |
@@ -239,7 +254,7 @@ UI_ENV=dev docker compose up -d   # DEV badge, green theme
 UI_ENV=int docker compose up -d   # INT badge, blue theme
 UI_ENV=prod docker compose up -d  # PROD badge, red theme
 
-# Set custom API URL (for direct API access without nginx proxy)
+# Set custom API URL (for direct API access without proxy)
 UI_API_URL=http://api.example.com:3000 docker compose up -d
 
 # Combine both
@@ -266,15 +281,7 @@ In proxy auth mode:
 - API requests don't include Authorization header (proxy adds it)
 - UI assumes full permissions (server enforces actual permissions)
 
-### Environment-Specific Themes
-
-The UI includes light and dark themes for each environment. The theme toggle cycles between Light, Dark, and Auto (system preference).
-
-**Built-in themes:**
-- `light.css`, `dark.css` - Default (no env)
-- `dev-light.css`, `dev-dark.css` - Development (green accent)
-- `int-light.css`, `int-dark.css` - Integration (blue accent)
-- `prod-light.css`, `prod-dark.css` - Production (red accent)
+### Custom Themes
 
 **To create a custom theme:**
 
@@ -333,6 +340,8 @@ The UI includes light and dark themes for each environment. The theme toggle cyc
 | `GIT_PULL_INTERVAL` | `30000` | Interval between pulls in ms (30s) |
 | `GIT_USER_NAME` | `cqrcfg` | Git user.name for commits |
 | `GIT_USER_EMAIL` | `cqrcfg@localhost` | Git user.email for commits |
+| `GIT_COMMIT_NAME_CLAIM` | (optional) | JWT claim path for git commit author name (dot notation) |
+| `GIT_COMMIT_EMAIL_CLAIM` | (optional) | JWT claim path for git commit author email (dot notation) |
 | `GIT_ENCRYPTION_SALT` | (optional) | Hex-encoded 8-byte salt for AES-256-CBC encryption |
 | `GIT_ENCRYPTION_PASSWORD` | (optional) | Password for encryption; both salt and password required to enable |
 
@@ -618,7 +627,7 @@ Claims can also be provided via HTTP headers (configured via `OIDC_CLAIMS_HEADER
 
 - `path` in permission must be an exact prefix of the requested path
 - Prefix matching is boundary-safe (`/app1` does NOT match `/app10`)
-- Actions: `read` (GET without trailing `/`), `list` (GET with trailing `/`), `write` (PATCH, PUT, DELETE)
+- Actions: `read` (GET without trailing `/`), `list` (GET with trailing `/`), `write` (POST, PATCH, PUT, DELETE)
 
 ## Project Structure
 
@@ -627,20 +636,21 @@ src/
 ├── index.js              # Server entry point
 ├── config.js             # Environment configuration
 ├── middleware/
-│   ├── auth.js           # JWT authentication
+│   ├── auth.js           # JWT authentication (JWKS, claims headers, fallback)
 │   ├── authz.js          # Authorization (permissions)
 │   └── normalizePath.js  # Path normalization
 ├── routes/
 │   ├── config.js         # Config CRUD routes
 │   └── stream.js         # WebSocket subscriptions
 ├── services/
-│   ├── configService.js  # Config operations
+│   ├── configService.js  # Config operations (LRU cache, notifications)
 │   └── notificationService.js  # Pub/sub notifications
 ├── storage/
-│   ├── interface.js      # Storage interface
+│   ├── interface.js      # Storage interface + glob/filter utilities
 │   ├── mongodb.js        # MongoDB implementation
 │   ├── dynamodb.js       # DynamoDB implementation
-│   └── etcd.js           # etcd implementation
+│   ├── etcd.js           # etcd implementation
+│   └── git.js            # Git implementation (encryption, author claims)
 ├── notifications/
 │   ├── interface.js      # Notifications interface
 │   ├── websocket.js      # In-process pub/sub
@@ -648,6 +658,17 @@ src/
 │   └── amqp.js           # AMQP implementation
 └── utils/
     └── tree.js           # Tree building utilities
+
+ui/                       # React SPA (Vite)
+├── server.js             # Fastify production server (static + API proxy)
+├── src/
+│   ├── App.jsx           # Main app component
+│   ├── api.js            # API client
+│   └── components/       # ConfigBrowser, ConfigEditor, TokenInput, ThemeToggle
+└── public/themes/        # Light/dark CSS themes per environment
+
+mock-oidc/                # Mock OIDC server for local development
+└── server.js             # Generates JWTs, serves JWKS + OpenID config
 ```
 
 ## Error Responses
