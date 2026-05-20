@@ -268,9 +268,21 @@ export async function authHook(request, reply) {
 
     // Attach user info to request
     const permissionsClaim = config.oidc.permissionsClaim;
+    let permissions = claims[permissionsClaim] || [];
+
+    // Parse permissions if it's a JSON string
+    if (typeof permissions === 'string') {
+      try {
+        permissions = JSON.parse(permissions);
+      } catch {
+        console.warn(`Failed to parse ${permissionsClaim} claim as JSON`);
+        permissions = [];
+      }
+    }
+
     request.user = {
       sub: claims.sub || payload.sub,
-      permissions: claims[permissionsClaim] || [],
+      permissions,
       claims,
     };
   } catch (error) {

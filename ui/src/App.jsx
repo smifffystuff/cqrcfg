@@ -65,7 +65,16 @@ function App() {
     if (isProxyAuthMode) {
       return [{ path: '/config', actions: ['read', 'write', 'list'] }];
     }
-    return jwtPayload?.[permissionsClaim] || [];
+    let perms = jwtPayload?.[permissionsClaim] || [];
+    // Parse if it's a JSON string
+    if (typeof perms === 'string') {
+      try {
+        perms = JSON.parse(perms);
+      } catch {
+        perms = [];
+      }
+    }
+    return perms;
   }, [jwtPayload]);
 
   // Get user display info from JWT claims
