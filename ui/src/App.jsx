@@ -10,11 +10,11 @@ import { api, isProxyAuthMode } from './api';
 const envName = window.__CQRCFG_ENV__ || '';
 const nameClaim = window.__CQRCFG_NAME_CLAIM__ || 'sub';
 const usernameClaim = window.__CQRCFG_USERNAME_CLAIM__ || 'sub';
-const permissionsClaim = window.__CQRCFG_PERMISSIONS_CLAIM__ || 'cqrcfg_acl';
-const permissionsCacheTtl = (window.__CQRCFG_PERMISSIONS_CACHE_TTL__ || 300) * 1000;
+const aclClaim = window.__CQRCFG_ACL_CLAIM__ || 'cqrcfg_acl';
+const aclCacheTtl = (window.__CQRCFG_ACL_CACHE_TTL__ || 300) * 1000;
 
 // Cache for permissions fetched from URLs
-const permissionsUrlCache = new Map();
+const aclUrlCache = new Map();
 
 // Parse JWT payload (without verification - server does that)
 function parseJwtPayload(token) {
@@ -64,14 +64,14 @@ function App() {
   }, [token]);
 
   // State for async-fetched permissions
-  const [fetchedPermissions, setFetchedPermissions] = useState(null);
+  const [fetchedAcl, setFetchedPermissions] = useState(null);
 
   // Parse permissions from JWT - could be array, JSON string, or URL
-  const rawPermissions = useMemo(() => {
+  const rawAcl = useMemo(() => {
     if (isProxyAuthMode) {
       return [{ path: '/config', actions: ['read', 'write', 'list'] }];
     }
-    let perms = jwtPayload?.[permissionsClaim] || [];
+    let perms = jwtPayload?.[aclClaim] || [];
     if (typeof perms === 'string') {
       try {
         return JSON.parse(perms);
@@ -85,19 +85,19 @@ function App() {
 
   // Fetch permissions from URL if needed
   useEffect(() => {
-    if (typeof rawPermissions !== 'string') {
+    if (typeof rawAcl !== 'string') {
       setFetchedPermissions(null);
       return;
     }
 
-    if (!rawPermissions.startsWith('http://') && !rawPermissions.startsWith('https://')) {
+    if (!rawAcl.startsWith('http://') && !rawAcl.startsWith('https://')) {
       setFetchedPermissions([]);
       return;
     }
 
-    const url = rawPermissions;
+    const url = rawAcl;
     const now = Date.now();
-    const cached = permissionsUrlCache.get(url);
+    const cached = aclUrlCache.get(url);
 
     if (cached && cached.expiry > now) {
       setFetchedPermissions(cached.permissions);
@@ -107,14 +107,14 @@ function App() {
     fetch(url)
       .then(res => res.ok ? res.json() : [])
       .then(perms => {
-        permissionsUrlCache.set(url, { permissions: perms, expiry: now + permissionsCacheTtl });
+        aclUrlCache.set(url, { permissions: perms, expiry: now + aclCacheTtl });
         setFetchedPermissions(perms);
       })
       .catch(() => setFetchedPermissions(cached?.permissions || []));
-  }, [rawPermissions]);
+  }, [rawAcl]);
 
   // Final permissions - use fetched if raw was a URL string
-  const permissions = typeof rawPermissions === 'string' ? (fetchedPermissions || []) : rawPermissions;
+  const permissions = typeof rawAcl === 'string' ? (fetchedAcl || []) : rawAcl;
 
   // Get user display info from JWT claims
   const userInfo = useMemo(() => {

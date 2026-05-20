@@ -6,39 +6,39 @@ let jwksKeys = [];
 let jwksCacheExpiry = 0;
 let jwksRefreshPromise = null;
 
-// Cache for permissions fetched from URLs
-const permissionsCache = new Map();
+// Cache for ACL fetched from URLs
+const aclCache = new Map();
 
 /**
- * Fetch permissions from a URL with caching
+ * Fetch ACL from a URL with caching
  */
-async function fetchPermissionsFromUrl(url) {
+async function fetchAclFromUrl(url) {
   const now = Date.now();
-  const cached = permissionsCache.get(url);
+  const cached = aclCache.get(url);
 
   if (cached && cached.expiry > now) {
-    return cached.permissions;
+    return cached.acl;
   }
 
   try {
     const response = await fetch(url);
     if (!response.ok) {
-      console.warn(`Failed to fetch permissions from ${url}: ${response.status}`);
-      return cached?.permissions || [];
+      console.warn(`Failed to fetch ACL from ${url}: ${response.status}`);
+      return cached?.acl || [];
     }
 
-    const permissions = await response.json();
-    const ttl = config.oidc.permissionsCacheTtl * 1000;
+    const acl = await response.json();
+    const ttl = config.oidc.aclCacheTtl * 1000;
 
-    permissionsCache.set(url, {
-      permissions,
+    aclCache.set(url, {
+      acl,
       expiry: now + ttl,
     });
 
-    return permissions;
+    return acl;
   } catch (error) {
-    console.warn(`Error fetching permissions from ${url}:`, error.message);
-    return cached?.permissions || [];
+    console.warn(`Error fetching ACL from ${url}:`, error.message);
+    return cached?.acl || [];
   }
 }
 
@@ -303,28 +303,28 @@ export async function authHook(request, reply) {
     const claims = externalClaims || payload;
 
     // Attach user info to request
-    const permissionsClaim = config.oidc.permissionsClaim;
-    let permissions = claims[permissionsClaim] || [];
+    const aclClaim = config.oidc.aclClaim;
+    let acl = claims[aclClaim] || [];
 
-    // Parse permissions - could be array, JSON string, or URL
-    if (typeof permissions === 'string') {
+    // Parse ACL - could be array, JSON string, or URL
+    if (typeof acl === 'string') {
       // Try JSON parse first
       try {
-        permissions = JSON.parse(permissions);
+        acl = JSON.parse(acl);
       } catch {
         // Check if it's a URL
-        if (permissions.startsWith('http://') || permissions.startsWith('https://')) {
-          permissions = await fetchPermissionsFromUrl(permissions);
+        if (acl.startsWith('http://') || acl.startsWith('https://')) {
+          acl = await fetchAclFromUrl(acl);
         } else {
-          console.warn(`Failed to parse ${permissionsClaim} claim as JSON or URL`);
-          permissions = [];
+          console.warn(`Failed to parse ${aclClaim} claim as JSON or URL`);
+          acl = [];
         }
       }
     }
 
     request.user = {
       sub: claims.sub || payload.sub,
-      permissions,
+      permissions: acl,
       claims,
     };
   } catch (error) {
