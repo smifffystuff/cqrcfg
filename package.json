@@ -1,6 +1,6 @@
 {
   "name": "cqrcfg",
-  "version": "1.0.7",
+  "version": "1.0.0",
   "description": "Runtime hierarchical configuration service with OIDC-based subtree access control",
   "main": "src/index.js",
   "type": "module",
