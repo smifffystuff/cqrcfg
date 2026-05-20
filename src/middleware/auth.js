@@ -6,6 +6,42 @@ let jwksKeys = [];
 let jwksCacheExpiry = 0;
 let jwksRefreshPromise = null;
 
+// Cache for permissions fetched from URLs
+const permissionsCache = new Map();
+
+/**
+ * Fetch permissions from a URL with caching
+ */
+async function fetchPermissionsFromUrl(url) {
+  const now = Date.now();
+  const cached = permissionsCache.get(url);
+
+  if (cached && cached.expiry > now) {
+    return cached.permissions;
+  }
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.warn(`Failed to fetch permissions from ${url}: ${response.status}`);
+      return cached?.permissions || [];
+    }
+
+    const permissions = await response.json();
+    const ttl = config.oidc.permissionsCacheTtl * 1000;
+
+    permissionsCache.set(url, {
+      permissions,
+      expiry: now + ttl,
+    });
+
+    return permissions;
+  } catch (error) {
+    console.warn(`Error fetching permissions from ${url}:`, error.message);
+    return cached?.permissions || [];
+  }
+}
+
 /**
  * Fetch JWKS from an issuer's well-known endpoint
  */
@@ -270,13 +306,19 @@ export async function authHook(request, reply) {
     const permissionsClaim = config.oidc.permissionsClaim;
     let permissions = claims[permissionsClaim] || [];
 
-    // Parse permissions if it's a JSON string
+    // Parse permissions - could be array, JSON string, or URL
     if (typeof permissions === 'string') {
+      // Try JSON parse first
       try {
         permissions = JSON.parse(permissions);
       } catch {
-        console.warn(`Failed to parse ${permissionsClaim} claim as JSON`);
-        permissions = [];
+        // Check if it's a URL
+        if (permissions.startsWith('http://') || permissions.startsWith('https://')) {
+          permissions = await fetchPermissionsFromUrl(permissions);
+        } else {
+          console.warn(`Failed to parse ${permissionsClaim} claim as JSON or URL`);
+          permissions = [];
+        }
       }
     }
 

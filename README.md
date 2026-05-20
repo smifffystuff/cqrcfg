@@ -230,7 +230,8 @@ The UI is configured via environment variables that generate a runtime config.js
 | `UI_AUTH_PATTERN` | `''` | Regex pattern to extract token from header (capture group 1 used; default strips `Bearer ` prefix) |
 | `UI_NAME_CLAIM` | `sub` | JWT claim to use for display name |
 | `UI_USERNAME_CLAIM` | `sub` | JWT claim to use for username (shown on hover if different from name) |
-| `UI_PERMISSIONS_CLAIM` | `cqrcfg_acl` | JWT claim name containing permissions array |
+| `UI_PERMISSIONS_CLAIM` | `cqrcfg_acl` | JWT claim for permissions (array, JSON string, or URL) |
+| `UI_PERMISSIONS_CACHE_TTL` | `300` | Cache TTL in seconds for permissions fetched from URLs |
 
 **Examples:**
 
@@ -313,7 +314,8 @@ The UI includes light and dark themes for each environment. The theme toggle cyc
 | `OIDC_AUDIENCE` | (optional) | Expected JWT audience |
 | `OIDC_CLAIMS_HEADERS` | (optional) | Comma-separated header names for claims |
 | `OIDC_JWKS_CACHE_TTL` | `120` | JWKS cache TTL in seconds (0 = no caching) |
-| `OIDC_PERMISSIONS_CLAIM` | `cqrcfg_acl` | JWT claim name containing permissions array |
+| `OIDC_PERMISSIONS_CLAIM` | `cqrcfg_acl` | JWT claim for permissions (array, JSON string, or URL) |
+| `OIDC_PERMISSIONS_CACHE_TTL` | `300` | Cache TTL in seconds for permissions fetched from URLs |
 
 **Note:** At least one of `OIDC_JWKS_URIS` or `OIDC_ISSUERS` must be configured. Keys from all sources are combined for JWT verification. JWKS keys are cached and refreshed every `OIDC_JWKS_CACHE_TTL` seconds (default 120s) to support key rotation.
 

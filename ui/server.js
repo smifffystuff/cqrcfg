@@ -19,6 +19,7 @@ window.__CQRCFG_AUTH_PATTERN__ = '${process.env.UI_AUTH_PATTERN || ''}';
 window.__CQRCFG_NAME_CLAIM__ = '${process.env.UI_NAME_CLAIM || 'sub'}';
 window.__CQRCFG_USERNAME_CLAIM__ = '${process.env.UI_USERNAME_CLAIM || 'sub'}';
 window.__CQRCFG_PERMISSIONS_CLAIM__ = '${process.env.UI_PERMISSIONS_CLAIM || 'cqrcfg_acl'}';
+window.__CQRCFG_PERMISSIONS_CACHE_TTL__ = ${process.env.UI_PERMISSIONS_CACHE_TTL || 300};
 `;
 
 const fastify = Fastify({

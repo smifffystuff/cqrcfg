@@ -62,6 +62,7 @@ services:
       - UI_NAME_CLAIM=${UI_NAME_CLAIM:-sub}
       - UI_USERNAME_CLAIM=${UI_USERNAME_CLAIM:-sub}
       - UI_PERMISSIONS_CLAIM=${UI_PERMISSIONS_CLAIM:-cqrcfg_acl}
+      - UI_PERMISSIONS_CACHE_TTL=${UI_PERMISSIONS_CACHE_TTL:-300}
     depends_on:
       - cqrcfg
 
