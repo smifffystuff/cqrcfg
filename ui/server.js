@@ -22,6 +22,14 @@ function normalizeBasePath(raw) {
 
 const BASE_PATH = normalizeBasePath(process.env.UI_BASE_PATH);
 
+console.log('[cqrcfg-ui] startup config:', {
+  UI_BASE_PATH_RAW: process.env.UI_BASE_PATH,
+  BASE_PATH_NORMALIZED: BASE_PATH,
+  API_URL,
+  PORT,
+  HOST,
+});
+
 const runtimeConfig = `window.__CQRCFG_BASE_PATH__ = '${BASE_PATH}';
 window.__CQRCFG_ENV__ = '${process.env.UI_ENV || ''}';
 window.__CQRCFG_API_URL__ = '${process.env.UI_API_URL || (BASE_PATH + '/api')}';
@@ -34,8 +42,12 @@ window.__CQRCFG_USERNAME_CLAIM__ = '${process.env.UI_USERNAME_CLAIM || 'sub'}';
 // Rewrite index.html at startup to fix the config.js absolute path
 // (Vite's base:'./' makes asset/theme/favicon refs relative, but non-module scripts stay absolute)
 const rawHtml = readFileSync(join(__dirname, 'dist', 'index.html'), 'utf-8');
+console.log('[cqrcfg-ui] raw dist/index.html (first 500 chars):', rawHtml.slice(0, 500));
+
 const rewrittenHtml = rawHtml
   .replace(/src="\/config\.js"/g, `src="${BASE_PATH}/config.js"`);
+
+console.log('[cqrcfg-ui] rewritten index.html (first 500 chars):', rewrittenHtml.slice(0, 500));
 
 const fastify = Fastify({
   logger: true,
@@ -67,6 +79,7 @@ await fastify.register(fastifyHttpProxy, {
 
 // Serve the rewritten index.html for the base path root
 fastify.get(`${BASE_PATH}/`, async (request, reply) => {
+  console.log('[cqrcfg-ui] serving rewritten index.html for:', request.url);
   reply.header('Content-Type', 'text/html').send(rewrittenHtml);
 });
 
@@ -86,6 +99,7 @@ if (BASE_PATH) {
 
 // SPA fallback - serve index.html for unmatched routes
 fastify.setNotFoundHandler(async (request, reply) => {
+  console.log('[cqrcfg-ui] 404 fallback hit for:', request.url);
   if (request.url.startsWith(`${BASE_PATH}/api/`) || request.url.startsWith(`${BASE_PATH}/ws/`)) {
     reply.code(404).send({ error: 'Not Found' });
     return;
