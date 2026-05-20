@@ -11,7 +11,7 @@ const PORT = parseInt(process.env.PORT, 10) || 80;
 const HOST = process.env.HOST || '0.0.0.0';
 const API_URL = process.env.API_URL || 'http://cqrcfg:3000';
 const BASE_PATH = process.env.UI_BASE_PATH || '/';
-const LOGGER = process.env.UI_LOGGER !== 'false';
+const UI_LOGGER_ENABLED = process.env.UI_LOGGER !== 'false';
 
 console.log('[cqrcfg-ui] startup config:', {
   UI_BASE_PATH: process.env.UI_BASE_PATH,
@@ -31,7 +31,7 @@ window.__CQRCFG_USERNAME_CLAIM__ = '${process.env.UI_USERNAME_CLAIM || 'sub'}';
 `;
 
 const fastify = Fastify({
-  logger: LOGGER,
+  logger: UI_LOGGER_ENABLED,
 });
 
 // Health check
