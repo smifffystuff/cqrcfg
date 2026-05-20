@@ -40,6 +40,7 @@ fastify.get('/health', async () => ({ status: 'ok' }));
 // Serve runtime config.js dynamically
 fastify.get('/config.js', async (request, reply) => {
   console.log('[cqrcfg-ui] serving config.js');
+  console.log('[cqrcfg-ui] request headers:', JSON.stringify(request.headers, null, 2));
   reply
     .header('Content-Type', 'application/javascript')
     .header('Cache-Control', 'no-cache, no-store')
