@@ -44,9 +44,14 @@ docker compose -f docker-compose.git.yml up -d  # Git storage variant
 
 **UI** (`ui/`): React SPA (Vite) with a Fastify production server (`ui/server.js`). Components: `TokenInput` (auth), `ConfigBrowser` (tree navigation), `ConfigEditor` (JSON editing), `ThemeToggle`. Runtime config via `window.__CQRCFG_*__` globals injected at container startup.
 
-## Commit Messages
+## Git
 
-Do not include any Co-Authored-By lines, Claude Code references, or model identifiers in commit messages.
+- Use `git switch` for all branching operations (not `git checkout -b`). E.g., `git switch -c feature/foo` to create, `git switch main` to switch.
+- Do not include any Co-Authored-By lines, Claude Code references, or model identifiers in commit messages.
+
+## Plans
+
+When creating implementation plans, save them to `documents/plans/` with a descriptive filename (e.g., `documents/plans/ui-base-path.md`). Plans should include Context, Approach, Files to Modify, Git Strategy, and Verification sections. If the approach changes during implementation, update the saved plan to reflect what was actually done and why.
 
 ## Key Patterns
 

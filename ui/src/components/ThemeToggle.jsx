@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 
 const THEME_KEY = 'cqrcfg_theme';
 const envName = window.__CQRCFG_ENV__ || '';
+const basePath = window.__CQRCFG_BASE_PATH__ || '';
 
 function getSystemTheme() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -19,7 +20,7 @@ function applyTheme(mode) {
   const filename = getThemeFilename(mode);
   const link = document.getElementById('theme-stylesheet');
   if (link) {
-    link.href = `/themes/${filename}.css`;
+    link.href = `${basePath}/themes/${filename}.css`;
   }
 }
 

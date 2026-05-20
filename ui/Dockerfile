@@ -26,7 +26,8 @@ COPY server.js ./
 ENV NODE_ENV=production \
     PORT=80 \
     HOST=0.0.0.0 \
-    API_URL=http://cqrcfg:3000
+    API_URL=http://cqrcfg:3000 \
+    UI_BASE_PATH=/
 
 EXPOSE 80
 
