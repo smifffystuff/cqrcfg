@@ -18,10 +18,16 @@ window.__CQRCFG_AUTH_HEADER__ = '${process.env.UI_AUTH_HEADER || ''}';
 window.__CQRCFG_AUTH_PATTERN__ = '${process.env.UI_AUTH_PATTERN || ''}';
 window.__CQRCFG_NAME_CLAIM__ = '${process.env.UI_NAME_CLAIM || 'sub'}';
 window.__CQRCFG_USERNAME_CLAIM__ = '${process.env.UI_USERNAME_CLAIM || 'sub'}';
+window.__CQRCFG_PERMISSIONS_CLAIM__ = '${process.env.UI_PERMISSIONS_CLAIM || 'cqrcfg_acl'}';
 `;
 
 const fastify = Fastify({
   logger: true,
+});
+
+// Health check endpoint
+fastify.get('/health', async (request, reply) => {
+  reply.send({ status: 'ok' });
 });
 
 // Serve runtime config.js dynamically

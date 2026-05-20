@@ -10,6 +10,7 @@ import { api, isProxyAuthMode } from './api';
 const envName = window.__CQRCFG_ENV__ || '';
 const nameClaim = window.__CQRCFG_NAME_CLAIM__ || 'sub';
 const usernameClaim = window.__CQRCFG_USERNAME_CLAIM__ || 'sub';
+const permissionsClaim = window.__CQRCFG_PERMISSIONS_CLAIM__ || 'cqrcfg_acl';
 
 // Parse JWT payload (without verification - server does that)
 function parseJwtPayload(token) {
@@ -64,7 +65,7 @@ function App() {
     if (isProxyAuthMode) {
       return [{ path: '/config', actions: ['read', 'write', 'list'] }];
     }
-    return jwtPayload?.config_permissions || [];
+    return jwtPayload?.[permissionsClaim] || [];
   }, [jwtPayload]);
 
   // Get user display info from JWT claims

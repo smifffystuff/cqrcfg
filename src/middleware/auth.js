@@ -267,9 +267,10 @@ export async function authHook(request, reply) {
     const claims = externalClaims || payload;
 
     // Attach user info to request
+    const permissionsClaim = config.oidc.permissionsClaim;
     request.user = {
       sub: claims.sub || payload.sub,
-      permissions: claims.config_permissions || [],
+      permissions: claims[permissionsClaim] || [],
       claims,
     };
   } catch (error) {

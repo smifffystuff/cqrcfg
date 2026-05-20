@@ -65,6 +65,8 @@ export const config = {
       : [],
     // JWKS cache TTL in seconds (0 = no caching, keys fetched every request)
     jwksCacheTtl: parseInt(process.env.OIDC_JWKS_CACHE_TTL, 10) || 120,
+    // JWT claim name for permissions (default: cqrcfg_acl)
+    permissionsClaim: process.env.OIDC_PERMISSIONS_CLAIM || 'cqrcfg_acl',
   },
   cache: {
     // Enable/disable config value caching
