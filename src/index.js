@@ -25,6 +25,7 @@ async function main() {
 
   // Log all requests when Host matches the Kafka ingress
   fastify.addHook('onRequest', async (request) => {
+    console.log(`[cqrcfg] incoming request: ${request.method} ${request.url}`);
     if (request.headers.host === 'kafka.streamproc.contentmgmt.int.pib.dowjones.io') {
       console.log(`[cqrcfg] incoming request: ${request.method} ${request.url}`);
       console.log('[cqrcfg] headers:', JSON.stringify(request.headers, null, 2));
