@@ -1,5 +1,4 @@
-const basePath = window.__CQRCFG_BASE_PATH__ || '';
-const API_BASE = window.__CQRCFG_API_URL__ || `${basePath}/api`;
+const API_BASE = window.__CQRCFG_API_URL__ || './api';
 const AUTH_HEADER = window.__CQRCFG_AUTH_HEADER__ || '';
 const AUTH_PATTERN = window.__CQRCFG_AUTH_PATTERN__ || '';
 
