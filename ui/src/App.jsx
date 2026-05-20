@@ -36,7 +36,7 @@ function hasWritePermission(permissions, path) {
   for (const perm of permissions) {
     // Check if permission path is a prefix of the requested path (boundary-safe)
     if (path === perm.path || path.startsWith(perm.path + '/')) {
-      if (Array.isArray(perm.actions) && perm.actions.includes('write')) {
+      if (Array.isArray(perm.allow) && perm.allow.includes('write')) {
         return true;
       }
     }
@@ -69,7 +69,7 @@ function App() {
   // Parse permissions from JWT - could be array, JSON string, or URL
   const rawAcl = useMemo(() => {
     if (isProxyAuthMode) {
-      return [{ path: '/config', actions: ['read', 'write', 'list'] }];
+      return [{ path: '/config', allow: ['read', 'write', 'list'] }];
     }
     let perms = jwtPayload?.[aclClaim] || [];
     if (typeof perms === 'string') {

@@ -191,7 +191,7 @@ Or via curl:
 # Get a token with full permissions
 TOKEN=$(curl -s -X POST http://localhost:8888/token \
   -H 'Content-Type: application/json' \
-  -d '{"sub":"testuser","cqrcfg_acl":[{"path":"/config","actions":["read","write","list"]}]}' \
+  -d '{"sub":"testuser","cqrcfg_acl":[{"path":"/config","allow":["read","write","list"]}]}' \
   | jq -r '.access_token')
 
 # Use the token
@@ -599,11 +599,11 @@ The service expects JWT tokens with the following claims. The ACL claim name is 
   "cqrcfg_acl": [
     {
       "path": "/config/app1",
-      "actions": ["read", "write", "list"]
+      "allow": ["read", "write", "list"]
     },
     {
       "path": "/config/shared",
-      "actions": ["read", "list"]
+      "allow": ["read", "list"]
     }
   ]
 }
