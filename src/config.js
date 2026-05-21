@@ -54,6 +54,10 @@ export const config = {
       exchangeType: process.env.AMQP_EXCHANGE_TYPE || 'topic',
     },
   },
+  auth: {
+    tokenHeader: (process.env.AUTH_TOKEN_HEADER || 'authorization').toLowerCase(),
+    bearerPrefix: process.env.AUTH_BEARER_PREFIX !== 'false',
+  },
   oidc: {
     jwksUris: process.env.OIDC_JWKS_URIS
       ? process.env.OIDC_JWKS_URIS.split(',').map(u => u.trim()).filter(Boolean)

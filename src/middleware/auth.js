@@ -257,24 +257,29 @@ async function extractClaimsFromHeaders(request, keySet) {
  * Authentication hook - validates JWT and attaches user to request
  */
 export async function authHook(request, reply) {
-  const authHeader = request.headers.authorization;
+  const headerName = config.auth.tokenHeader;
+  const headerValue = request.headers[headerName];
 
-  if (!authHeader) {
+  if (!headerValue) {
     return reply.code(401).send({
       error: 'Unauthorized',
-      message: 'Missing Authorization header',
+      message: `Missing ${headerName} header`,
     });
   }
 
-  const parts = authHeader.split(' ');
-  if (parts.length !== 2 || parts[0] !== 'Bearer') {
-    return reply.code(401).send({
-      error: 'Unauthorized',
-      message: 'Invalid Authorization header format. Expected: Bearer <token>',
-    });
+  let token;
+  if (config.auth.bearerPrefix) {
+    const parts = headerValue.split(' ');
+    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+      return reply.code(401).send({
+        error: 'Unauthorized',
+        message: `Invalid ${headerName} header format. Expected: Bearer <token>`,
+      });
+    }
+    token = parts[1];
+  } else {
+    token = headerValue;
   }
-
-  const token = parts[1];
 
   try {
     const keySet = await getJWKS();
