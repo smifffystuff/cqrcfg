@@ -314,6 +314,8 @@ In proxy auth mode:
 |----------|---------|-------------|
 | `PORT` | `3000` | Server port |
 | `HOST` | `0.0.0.0` | Server host |
+| `AUTH_TOKEN_HEADER` | `authorization` | Header name to read the JWT from |
+| `AUTH_BEARER_PREFIX` | `true` | Expect `Bearer ` prefix on the token; set to `false` to read the raw JWT directly |
 | `OIDC_JWKS_URIS` | (optional) | Comma-separated direct JWKS endpoint URLs |
 | `OIDC_ISSUERS` | (optional) | Comma-separated OIDC issuer URLs (fetches JWKS from each issuer's well-known endpoint) |
 | `OIDC_AUDIENCE` | (optional) | Expected JWT audience |
