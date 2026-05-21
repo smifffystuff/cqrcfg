@@ -1,5 +1,9 @@
 # Releases
 
+## v1.0.0-build.4 — 2026-05-21
+
+- Add logging for authenticated user claims in authHook to improve JWT debugging
+
 ## v1.0.0-build.3 — 2026-05-21
 
 - Add `RELEASES.md` changelog file
