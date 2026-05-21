@@ -1,5 +1,11 @@
 # Releases
 
+## v1.0.0-build.3 — 2026-05-21
+
+- Add `RELEASES.md` changelog file
+- Update create-release skill to generate changelog from git history
+- Document `AUTH_TOKEN_HEADER` and `AUTH_BEARER_PREFIX` env vars in README
+
 ## v1.0.0-build.2 — 2026-05-21
 
 - Add configurable auth token header (`AUTH_TOKEN_HEADER` env var)
