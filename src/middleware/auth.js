@@ -289,7 +289,7 @@ export async function authHook(request, reply) {
     // JWT-format headers are verified, JSON/base64 headers are parsed directly
     const externalClaims = await extractClaimsFromHeaders(request, keySet);
     const claims = externalClaims || payload;
-
+    console.log('Authenticated user claims:', JSON.stringify(claims, null, 2));
     // Attach user info to request
     request.user = {
       sub: claims.sub || payload.sub,
