@@ -9,3 +9,4 @@ cqrcfg_deploy_key*
 deploy_keys/
 local_setup/
 package-lock.json
+config/

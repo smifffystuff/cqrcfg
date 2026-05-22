@@ -5,6 +5,7 @@ import { config } from './config.js';
 const TRANSPORT_ALIASES = {
   'log4js': './src/transports/log4js.js',
   'winston': './src/transports/winston.js',
+  'generic': './src/transports/generic.js',
 };
 
 function resolveTarget(target) {

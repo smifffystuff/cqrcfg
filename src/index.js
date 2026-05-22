@@ -88,13 +88,17 @@ async function main() {
   logger.info({ port: config.server.port, host: config.server.host, storage: config.storage.type, notifications: config.notifications.type }, 'Config service started');
 
   // Graceful shutdown
+  let shuttingDown = false;
   const shutdown = async (signal) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+
     logger.info({ signal }, 'Shutting down gracefully');
 
     await fastify.close();
     await closeNotifications();
     await closeStorage();
-    logger.info('Server closed');
+    logger.info('Server closed - flushing logs and exiting');
 
     // Allow async transport worker to drain buffered messages
     setTimeout(() => process.exit(0), 200);

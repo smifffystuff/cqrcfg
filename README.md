@@ -368,6 +368,108 @@ In proxy auth mode:
 
 The cache uses LRU (Least Recently Used) eviction with both entry count and memory limits to prevent memory exhaustion. Cache is automatically invalidated on writes.
 
+### Logging
+
+The service uses [Pino](https://getpino.io) for structured JSON logging. By default, logs are written to stdout in JSON format. The logging framework can be redirected to other logging libraries without code changes using environment variables.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `LOG_LEVEL` | `info` | Log level: `trace`, `debug`, `info`, `warn`, `error`, `fatal` |
+| `LOG_TRANSPORT` | (none) | Log transport target (see below) |
+| `LOG_TRANSPORT_OPTIONS` | `{}` | JSON string of options passed to the transport |
+
+#### Built-in Transports
+
+| Transport | `LOG_TRANSPORT` value | Description |
+|-----------|----------------------|-------------|
+| Pino JSON | (unset) | Default — structured JSON to stdout |
+| pino-pretty | `pino-pretty` | Human-readable coloured output (dev only) |
+| log4js | `log4js` | Forwards logs to log4js (uses `config/log4js.json`) |
+| winston | `winston` | Forwards logs to winston |
+| generic | `generic` | Forwards logs to any compatible logger module |
+
+#### Examples
+
+```bash
+# Pretty-print logs in development
+LOG_TRANSPORT=pino-pretty npm run dev
+
+# Use log4js with config file at config/log4js.json
+LOG_TRANSPORT=log4js npm start
+
+# Use winston with file transport
+LOG_TRANSPORT=winston LOG_TRANSPORT_OPTIONS='{"transports":[{"type":"file","options":{"filename":"app.log"}}]}' npm start
+```
+
+#### Generic Transport
+
+The generic transport allows you to forward logs to any external logger library that exposes standard logging methods. This is useful for integrating with organisation-specific logging packages.
+
+```bash
+LOG_TRANSPORT=generic
+LOG_TRANSPORT_OPTIONS={"module": "@dj-strmproc/node-libs/utils", "export": "logger"}
+```
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `module` | Yes | Module specifier to import (package name or path) |
+| `export` | No | Named export to use (default: `logger`) |
+
+The transport dynamically imports the specified module, grabs the named export, and maps Pino log levels to method calls on that object.
+
+**Level mapping:**
+
+| Pino level | Method called |
+|------------|--------------|
+| 10 (trace) | `.trace()` |
+| 20 (debug) | `.debug()` |
+| 30 (info) | `.info()` |
+| 40 (warn) | `.warn()` |
+| 50 (error) | `.error()` |
+| 60 (fatal) | `.fatal()` (falls back to `.error()`) |
+
+#### Writing a Compatible Logger
+
+Any logger object can be used with the generic transport as long as it satisfies this interface:
+
+```javascript
+// Minimum required — at least .info() and .error()
+export const logger = {
+  info(message, ...args) { /* handle log */ },
+  warn(message, ...args) { /* handle log */ },
+  error(message, ...args) { /* handle log */ },
+};
+
+// Optional methods for full level support
+logger.trace = (message, ...args) => { /* ... */ };
+logger.debug = (message, ...args) => { /* ... */ };
+logger.fatal = (message, ...args) => { /* ... */ };
+```
+
+**Requirements:**
+
+1. The module must be importable via `import()` (ESM or CJS with default export)
+2. The logger object must be a named export (configurable via the `export` option)
+3. Methods receive `(message, metadata)` where `message` is a string and `metadata` is an object containing any additional structured data (omitted if empty)
+4. If a level method is missing, the transport falls back: `fatal` → `error`, others → `info`
+5. Pino transports run in a worker thread — the logger module must be self-contained (no shared state with the main thread)
+
+**Example — custom logger wrapping console:**
+
+```javascript
+// my-logger.js
+export const logger = {
+  debug: (msg, meta) => console.debug(`[DEBUG] ${msg}`, meta || ''),
+  info:  (msg, meta) => console.info(`[INFO]  ${msg}`, meta || ''),
+  warn:  (msg, meta) => console.warn(`[WARN]  ${msg}`, meta || ''),
+  error: (msg, meta) => console.error(`[ERROR] ${msg}`, meta || ''),
+};
+```
+
+```bash
+LOG_TRANSPORT=generic LOG_TRANSPORT_OPTIONS='{"module":"./my-logger.js"}' npm start
+```
+
 ## API Endpoints
 
 All endpoints (except `/health`) require a valid JWT in the `Authorization: Bearer <token>` header.
@@ -637,6 +739,11 @@ Claims can also be provided via HTTP headers (configured via `OIDC_CLAIMS_HEADER
 src/
 ├── index.js              # Server entry point
 ├── config.js             # Environment configuration
+├── logger.js             # Pino logger with pluggable transport support
+├── transports/
+│   ├── log4js.js         # Pino → log4js bridge transport
+│   ├── winston.js        # Pino → winston bridge transport
+│   └── generic.js        # Pino → any compatible logger bridge
 ├── middleware/
 │   ├── auth.js           # JWT authentication (JWKS, claims headers, fallback)
 │   ├── authz.js          # Authorization (permissions)
