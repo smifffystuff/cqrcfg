@@ -1,5 +1,6 @@
 import { MongoClient } from 'mongodb';
 import { StorageInterface, globToRegex, matchesFilter } from './interface.js';
+import { logger } from '../logger.js';
 
 const COLLECTION = 'config';
 
@@ -26,7 +27,7 @@ export class MongoDBStorage extends StorageInterface {
       { unique: true }
     );
 
-    console.log(`Connected to MongoDB: ${this.database}`);
+    logger.info({ database: this.database }, 'Connected to MongoDB');
   }
 
   async close() {
@@ -34,7 +35,7 @@ export class MongoDBStorage extends StorageInterface {
       await this.client.close();
       this.client = null;
       this.db = null;
-      console.log('Disconnected from MongoDB');
+      logger.info('Disconnected from MongoDB');
     }
   }
 

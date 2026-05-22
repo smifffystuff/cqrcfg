@@ -1,5 +1,6 @@
 import { Kafka, Partitioners } from 'kafkajs';
 import { NotificationsInterface } from './interface.js';
+import { logger } from '../logger.js';
 
 export class KafkaNotifications extends NotificationsInterface {
   constructor(options) {
@@ -36,7 +37,7 @@ export class KafkaNotifications extends NotificationsInterface {
     // Start consuming
     await this._startConsumer();
 
-    console.log(`Kafka notifications connected: ${this.brokers.join(', ')}`);
+    logger.info({ brokers: this.brokers }, 'Kafka notifications connected');
   }
 
   async _startConsumer() {
@@ -56,13 +57,13 @@ export class KafkaNotifications extends NotificationsInterface {
                 try {
                   callback(event);
                 } catch (error) {
-                  console.error('Error in Kafka subscription callback:', error);
+                  logger.error(error, 'Error in Kafka subscription callback');
                 }
               }
             }
           }
         } catch (error) {
-          console.error('Error processing Kafka message:', error);
+          logger.error(error, 'Error processing Kafka message');
         }
       },
     });
@@ -79,7 +80,7 @@ export class KafkaNotifications extends NotificationsInterface {
     }
     this.subscriptions.clear();
     this.consumerRunning = false;
-    console.log('Kafka notifications disconnected');
+    logger.info('Kafka notifications disconnected');
   }
 
   async publish(path, event) {

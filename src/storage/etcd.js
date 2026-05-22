@@ -1,5 +1,6 @@
 import { Etcd3 } from 'etcd3';
 import { StorageInterface, globToRegex, matchesFilter } from './interface.js';
+import { logger } from '../logger.js';
 
 export class EtcdStorage extends StorageInterface {
   constructor(options) {
@@ -18,14 +19,14 @@ export class EtcdStorage extends StorageInterface {
 
     // Test connection
     await this.client.get('__health_check__');
-    console.log(`Connected to etcd: ${this.hosts.join(', ')}`);
+    logger.info({ hosts: this.hosts }, 'Connected to etcd');
   }
 
   async close() {
     if (this.client) {
       this.client.close();
       this.client = null;
-      console.log('Disconnected from etcd');
+      logger.info('Disconnected from etcd');
     }
   }
 

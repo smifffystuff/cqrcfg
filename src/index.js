@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import websocket from '@fastify/websocket';
 import { config, validateConfig } from './config.js';
+import { logger, loggerConfig } from './logger.js';
 import { initStorage, closeStorage } from './storage/index.js';
 import { initNotifications, closeNotifications } from './notifications/index.js';
 import configRoutes from './routes/config.js';
@@ -16,7 +17,7 @@ async function main() {
 
   // Create Fastify instance
   const fastify = Fastify({
-    logger: config.logLevel === 'debug',
+    logger: loggerConfig,
     bodyLimit: 1048576, // 1MB
   });
 
@@ -26,8 +27,7 @@ async function main() {
   // Log all requests when Host matches the Kafka ingress
   fastify.addHook('onRequest', async (request) => {
     if (request.headers.host === 'kafka.streamproc.contentmgmt.int.pib.dowjones.io' || request.headers.host === 'streamproc-cqrcfg.djin-contentmgmt.svc.cluster.local:3000') {
-      console.log(`[cqrcfg] incoming request: ${request.method} ${request.url}, from ${request.headers.host}`);
-      console.log('[cqrcfg] headers:', JSON.stringify(request.headers, null, 2));
+      request.log.debug({ host: request.headers.host, headers: request.headers }, `incoming request: ${request.method} ${request.url}`);
     }
   });
 
@@ -49,7 +49,7 @@ async function main() {
 
   // Error handler
   fastify.setErrorHandler((error, request, reply) => {
-    console.error('Unhandled error:', error);
+    request.log.error(error, 'Unhandled error');
 
     if (error.validation) {
       return reply.code(400).send({
@@ -85,27 +85,19 @@ async function main() {
     host: config.server.host,
   });
 
-  console.log(`Config service running at http://${config.server.host}:${config.server.port}`);
-  console.log(`Storage: ${config.storage.type}`);
-  console.log(`Notifications: ${config.notifications.type}`);
-  console.log('Endpoints:');
-  console.log('  GET    /health        - Health check');
-  console.log('  GET    /config/*      - Get config subtree');
-  console.log('  POST   /config/*      - Merge config (preserves missing values)');
-  console.log('  PUT    /config/*      - Replace config (overwrites all values)');
-  console.log('  DELETE /config/*      - Delete config subtree');
-  console.log('  (POST/PUT support ?from=... to copy from another path)');
-  console.log('  WS     /stream/*      - Subscribe to changes');
+  logger.info({ port: config.server.port, host: config.server.host, storage: config.storage.type, notifications: config.notifications.type }, 'Config service started');
 
   // Graceful shutdown
   const shutdown = async (signal) => {
-    console.log(`\nReceived ${signal}. Shutting down gracefully...`);
+    logger.info({ signal }, 'Shutting down gracefully');
 
     await fastify.close();
     await closeNotifications();
     await closeStorage();
-    console.log('Server closed');
-    process.exit(0);
+    logger.info('Server closed');
+
+    // Allow async transport worker to drain buffered messages
+    setTimeout(() => process.exit(0), 200);
   };
 
   process.on('SIGTERM', () => shutdown('SIGTERM'));
@@ -113,6 +105,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('Failed to start server:', error);
+  logger.fatal(error, 'Failed to start server');
   process.exit(1);
 });

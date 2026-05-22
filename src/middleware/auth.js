@@ -1,5 +1,6 @@
 import * as jose from 'jose';
 import { config } from '../config.js';
+import { logger } from '../logger.js';
 
 let combinedJwks = null;
 let jwksKeys = [];
@@ -18,7 +19,7 @@ async function fetchIssuerJwks(issuer) {
     // Fetch OpenID configuration
     const configResponse = await fetch(wellKnownUrl);
     if (!configResponse.ok) {
-      console.warn(`Failed to fetch OpenID config from ${wellKnownUrl}: ${configResponse.status}`);
+      logger.warn({ url: wellKnownUrl, status: configResponse.status }, 'Failed to fetch OpenID config');
       return [];
     }
 
@@ -26,21 +27,21 @@ async function fetchIssuerJwks(issuer) {
     const jwksUri = openidConfig.jwks_uri;
 
     if (!jwksUri) {
-      console.warn(`No jwks_uri found in OpenID config for ${issuer}`);
+      logger.warn({ issuer }, 'No jwks_uri found in OpenID config');
       return [];
     }
 
     // Fetch JWKS
     const jwksResponse = await fetch(jwksUri);
     if (!jwksResponse.ok) {
-      console.warn(`Failed to fetch JWKS from ${jwksUri}: ${jwksResponse.status}`);
+      logger.warn({ jwksUri, status: jwksResponse.status }, 'Failed to fetch JWKS');
       return [];
     }
 
     const jwksData = await jwksResponse.json();
     return jwksData.keys || [];
   } catch (error) {
-    console.warn(`Error fetching JWKS for issuer ${issuer}:`, error.message);
+    logger.warn({ issuer, err: error.message }, 'Error fetching JWKS for issuer');
     return [];
   }
 }
@@ -52,14 +53,14 @@ async function fetchDirectJwks(jwksUri) {
   try {
     const response = await fetch(jwksUri);
     if (!response.ok) {
-      console.warn(`Failed to fetch JWKS from ${jwksUri}: ${response.status}`);
+      logger.warn({ jwksUri, status: response.status }, 'Failed to fetch JWKS from URI');
       return [];
     }
 
     const jwksData = await response.json();
     return jwksData.keys || [];
   } catch (error) {
-    console.warn(`Error fetching JWKS from ${jwksUri}:`, error.message);
+    logger.warn({ jwksUri, err: error.message }, 'Error fetching JWKS from URI');
     return [];
   }
 }
@@ -100,7 +101,7 @@ async function fetchAllJWKS() {
     jwksCacheExpiry = 0; // No caching
   }
 
-  console.log(`Loaded ${allKeys.length} JWKS key(s) from configured sources (cache TTL: ${ttlSeconds}s)`);
+  logger.info({ keyCount: allKeys.length, cacheTtl: ttlSeconds }, 'Loaded JWKS keys');
   return combinedJwks;
 }
 
@@ -289,7 +290,7 @@ export async function authHook(request, reply) {
     // JWT-format headers are verified, JSON/base64 headers are parsed directly
     const externalClaims = await extractClaimsFromHeaders(request, keySet);
     const claims = externalClaims || payload;
-    console.log('Authenticated user claims:', JSON.stringify(claims, null, 2));
+    logger.debug({ claims }, 'Authenticated user claims');
     // Attach user info to request
     request.user = {
       sub: claims.sub || payload.sub,
@@ -297,7 +298,7 @@ export async function authHook(request, reply) {
       claims,
     };
   } catch (error) {
-    console.error('JWT verification failed:', error.message);
+    logger.warn({ err: error.message }, 'JWT verification failed');
 
     if (error.code === 'ERR_JWT_EXPIRED') {
       return reply.code(401).send({

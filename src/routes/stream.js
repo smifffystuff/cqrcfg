@@ -1,5 +1,6 @@
 import * as jose from 'jose';
 import { config } from '../config.js';
+import { logger } from '../logger.js';
 import { subscribeToChanges, supportsSubscription } from '../services/notificationService.js';
 
 let jwks = null;
@@ -249,13 +250,13 @@ export default async function streamRoutes(fastify) {
       });
 
       socket.on('error', (error) => {
-        console.error('WebSocket error:', error);
+        logger.error(error, 'WebSocket error');
         if (subscription) {
           subscription.unsubscribe();
         }
       });
     } catch (error) {
-      console.error('WebSocket setup error:', error);
+      logger.error(error, 'WebSocket setup error');
       if (subscription) {
         subscription.unsubscribe();
       }

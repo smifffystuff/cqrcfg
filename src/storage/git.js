@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile, rm, readdir, stat } from 'fs/promises';
 import { join, dirname } from 'path';
 import { createCipheriv, createDecipheriv, pbkdf2Sync, randomBytes } from 'crypto';
 import { StorageInterface, globToRegex, matchesFilter } from './interface.js';
+import { logger } from '../logger.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -104,7 +105,7 @@ export class GitStorage extends StorageInterface {
       try {
         // Check if repo exists
         await stat(join(this.localPath, '.git'));
-        console.log(`Git repo exists at ${this.localPath}`);
+        logger.debug({ localPath: this.localPath }, 'Git repo exists');
 
         if (this._hasRemote()) {
           // Fetch and reset to remote (branch may not exist yet on empty repos)
@@ -114,7 +115,7 @@ export class GitStorage extends StorageInterface {
           } catch (fetchErr) {
             if (fetchErr.message.includes("couldn't find remote ref")) {
               await this._git(['checkout', '-b', this.branch]).catch(() => {});
-              console.log(`Remote branch ${this.branch} not found, using local branch`);
+              logger.info({ branch: this.branch }, 'Remote branch not found, using local branch');
             } else {
               throw fetchErr;
             }
@@ -125,20 +126,20 @@ export class GitStorage extends StorageInterface {
           if (this._hasRemote()) {
             try {
               await this._gitRaw(['clone', '--branch', this.branch, this.remoteUrl, this.localPath]);
-              console.log(`Cloned git repo from ${this.remoteUrl}`);
+              logger.info({ remoteUrl: this.remoteUrl }, 'Cloned git repo');
             } catch (cloneErr) {
               // Remote repo may be empty — clean up failed clone, then retry without branch
               await rm(this.localPath, { recursive: true, force: true });
               await this._gitRaw(['clone', this.remoteUrl, this.localPath]);
               await this._git(['checkout', '-b', this.branch]);
-              console.log(`Cloned empty repo from ${this.remoteUrl}, created branch ${this.branch}`);
+              logger.info({ remoteUrl: this.remoteUrl, branch: this.branch }, 'Cloned empty repo, created branch');
             }
           } else {
             // Initialize local repo without remote
             await mkdir(this.localPath, { recursive: true });
             await this._git(['init']);
             await this._git(['checkout', '-b', this.branch]);
-            console.log(`Initialized local git repo at ${this.localPath}`);
+            logger.info({ localPath: this.localPath }, 'Initialized local git repo');
           }
         } else {
           throw err;
@@ -151,16 +152,16 @@ export class GitStorage extends StorageInterface {
 
       this.lastPull = Date.now();
       if (this._hasRemote()) {
-        console.log(`Connected to git storage: ${this.remoteUrl}`);
+        logger.info({ remoteUrl: this.remoteUrl }, 'Connected to git storage');
       } else {
-        console.log(`Connected to local git storage: ${this.localPath} (no remote)`);
+        logger.info({ localPath: this.localPath }, 'Connected to local git storage (no remote)');
       }
     });
   }
 
   async close() {
     // Nothing to close for git
-    console.log('Disconnected from git storage');
+    logger.info('Disconnected from git storage');
   }
 
   async _git(args) {
@@ -206,7 +207,7 @@ export class GitStorage extends StorageInterface {
       await this._git(['reset', '--hard', `origin/${this.branch}`]);
       this.lastPull = now;
     } catch (err) {
-      console.error('Git pull failed:', err.message);
+      logger.error({ err: err.message }, 'Git pull failed');
     }
   }
 
