@@ -91,9 +91,9 @@ const server = createServer(async (req, res) => {
 
     // Default claims if not provided
     if (!claims.sub) claims.sub = 'testuser';
-    if (!claims.config_permissions) {
-      claims.config_permissions = [
-        { path: '/config', actions: ['read', 'write', 'list'] }
+    if (!claims.cqrcfg_acl) {
+      claims.cqrcfg_acl = [
+        { path: '/config', allow: ['read', 'write', 'list'] }
       ];
     }
 
@@ -137,10 +137,10 @@ const server = createServer(async (req, res) => {
   <label>Claims (JSON):</label>
   <textarea id="claims">{
   "sub": "testuser",
-  "config_permissions": [
+  "cqrcfg_acl": [
     {
       "path": "/config",
-      "actions": ["read", "write", "list"]
+      "allow": ["read", "write", "list"]
     }
   ]
 }</textarea>

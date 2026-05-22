@@ -123,7 +123,7 @@ async function verifyToken(token, headers) {
 
   return {
     sub: claims.sub || payload.sub,
-    permissions: claims.config_permissions || [],
+    permissions: claims.cqrcfg_acl || [],
   };
 }
 
@@ -132,8 +132,8 @@ async function verifyToken(token, headers) {
  */
 function hasReadPermission(user, requestedPath) {
   return user.permissions.some((perm) => {
-    if (perm.path === requestedPath) return perm.actions?.includes('read');
-    if (requestedPath.startsWith(perm.path + '/')) return perm.actions?.includes('read');
+    if (perm.path === requestedPath) return perm.allow?.includes('read');
+    if (requestedPath.startsWith(perm.path + '/')) return perm.allow?.includes('read');
     return false;
   });
 }

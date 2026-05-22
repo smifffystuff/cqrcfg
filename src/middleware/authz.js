@@ -26,7 +26,7 @@ export function authzHook(requiredAction) {
       }
 
       // Check if the required action is allowed
-      const actions = perm.actions || [];
+      const actions = perm.allow || [];
       return actions.includes(requiredAction);
     });
 

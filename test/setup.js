@@ -28,8 +28,8 @@ export async function createTestToken(claims = {}, options = {}) {
 
   const defaultClaims = {
     sub: 'test-user',
-    config_permissions: [
-      { path: '/config', actions: ['read', 'write'] },
+    cqrcfg_acl: [
+      { path: '/config', allow: ['read', 'write'] },
     ],
   };
 

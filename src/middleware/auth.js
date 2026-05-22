@@ -7,6 +7,42 @@ let jwksKeys = [];
 let jwksCacheExpiry = 0;
 let jwksRefreshPromise = null;
 
+// Cache for ACL fetched from URLs
+const aclCache = new Map();
+
+/**
+ * Fetch ACL from a URL with caching
+ */
+async function fetchAclFromUrl(url) {
+  const now = Date.now();
+  const cached = aclCache.get(url);
+
+  if (cached && cached.expiry > now) {
+    return cached.acl;
+  }
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.warn(`Failed to fetch ACL from ${url}: ${response.status}`);
+      return cached?.acl || [];
+    }
+
+    const acl = await response.json();
+    const ttl = config.oidc.aclCacheTtl * 1000;
+
+    aclCache.set(url, {
+      acl,
+      expiry: now + ttl,
+    });
+
+    return acl;
+  } catch (error) {
+    console.warn(`Error fetching ACL from ${url}:`, error.message);
+    return cached?.acl || [];
+  }
+}
+
 /**
  * Fetch JWKS from an issuer's well-known endpoint
  */
@@ -292,9 +328,28 @@ export async function authHook(request, reply) {
     const claims = externalClaims || payload;
     logger.debug({ claims }, 'Authenticated user claims');
     // Attach user info to request
+    const aclClaim = config.oidc.aclClaim;
+    let acl = claims[aclClaim] || [];
+
+    // Parse ACL - could be array, JSON string, or URL
+    if (typeof acl === 'string') {
+      // Try JSON parse first
+      try {
+        acl = JSON.parse(acl);
+      } catch {
+        // Check if it's a URL
+        if (acl.startsWith('http://') || acl.startsWith('https://')) {
+          acl = await fetchAclFromUrl(acl);
+        } else {
+          console.warn(`Failed to parse ${aclClaim} claim as JSON or URL`);
+          acl = [];
+        }
+      }
+    }
+
     request.user = {
       sub: claims.sub || payload.sub,
-      permissions: claims.config_permissions || [],
+      permissions: acl,
       claims,
     };
   } catch (error) {

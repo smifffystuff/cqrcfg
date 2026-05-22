@@ -42,7 +42,7 @@ async function checkAuthz(request, reply, requiredAction) {
     if (perm.path !== requestedPath && !requestedPath.startsWith(perm.path + '/')) {
       return false;
     }
-    const actions = perm.actions || [];
+    const actions = perm.allow || [];
     return actions.includes(requiredAction);
   });
 
@@ -66,7 +66,7 @@ function checkAuthzForPath(user, path, requiredAction) {
     if (perm.path !== path && !path.startsWith(perm.path + '/')) {
       return false;
     }
-    const actions = perm.actions || [];
+    const actions = perm.allow || [];
     return actions.includes(requiredAction);
   });
 }
