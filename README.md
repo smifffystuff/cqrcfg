@@ -407,7 +407,7 @@ The generic transport allows you to forward logs to any external logger library 
 
 ```bash
 LOG_TRANSPORT=generic
-LOG_TRANSPORT_OPTIONS={"module": "@dj-strmproc/node-libs/utils", "export": "logger"}
+LOG_TRANSPORT_OPTIONS={"module": "@your-org/logging-utils", "export": "logger"}
 ```
 
 | Option | Required | Description |
