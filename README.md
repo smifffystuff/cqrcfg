@@ -405,10 +405,20 @@ LOG_TRANSPORT=winston LOG_TRANSPORT_OPTIONS='{"transports":[{"type":"file","opti
 
 The generic transport allows you to forward logs to any external logger library that exposes standard logging methods. This is useful for integrating with organisation-specific logging packages.
 
+The logger package is not bundled as a dependency — install it locally using `--no-save` so it doesn't pollute the service's `package.json`:
+
+```bash
+npm install @your-org/logging-utils --no-save
+```
+
+Then configure the environment variables:
+
 ```bash
 LOG_TRANSPORT=generic
 LOG_TRANSPORT_OPTIONS={"module": "@your-org/logging-utils", "export": "logger"}
 ```
+
+In containerised deployments, add the install step to your Dockerfile or entrypoint script so the package is available at runtime.
 
 | Option | Required | Description |
 |--------|----------|-------------|
