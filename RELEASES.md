@@ -1,5 +1,11 @@
 # Releases
 
+## v1.0.0-build.5 — 2026-05-22
+
+- Replace `console.*` calls with Pino structured logging throughout the codebase
+- Add generic logger transport with documented logging system architecture
+- Remove `@dj-strmproc/node-libs` from optionalDependencies
+
 ## v1.0.0-build.4 — 2026-05-21
 
 - Add logging for authenticated user claims in authHook to improve JWT debugging
