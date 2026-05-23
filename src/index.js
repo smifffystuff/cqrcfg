@@ -85,7 +85,7 @@ async function main() {
     host: config.server.host,
   });
 
-  logger.info({ port: config.server.port, host: config.server.host, storage: config.storage.type, notifications: config.notifications.type }, 'Config service started');
+  logger.info({ port: config.server.port, host: config.server.host, storage: config.storage.type, notifications: config.notifications.type, logLevel: config.logLevel }, 'Config service started');
 
   // Graceful shutdown
   let shuttingDown = false;
