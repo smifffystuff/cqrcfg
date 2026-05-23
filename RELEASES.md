@@ -1,5 +1,9 @@
 # Releases
 
+## v1.0.0-build.6 — 2026-05-23
+
+- Include `logLevel` in startup log output for better diagnostics
+
 ## v1.0.0-build.5 — 2026-05-22
 
 - Replace `console.*` calls with Pino structured logging throughout the codebase
