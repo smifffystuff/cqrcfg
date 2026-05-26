@@ -12,7 +12,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "cqrcfg": "file:..",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "fastify": "^5.0.0",
