@@ -326,6 +326,13 @@ export async function authHook(request, reply) {
     // JWT-format headers are verified, JSON/base64 headers are parsed directly
     const externalClaims = await extractClaimsFromHeaders(request, keySet);
     const claims = externalClaims || payload;
+
+    if (claims && !claims.cqrcfg_acl) {
+      claims.cqrcfg_acl = [
+        { path: '/config', allow: ['read', 'write', 'list'] },
+      ];
+    }
+
     logger.debug({ claims }, 'Authenticated user claims');
     // Attach user info to request
     const aclClaim = config.oidc.aclClaim;

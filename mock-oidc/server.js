@@ -91,11 +91,11 @@ const server = createServer(async (req, res) => {
 
     // Default claims if not provided
     if (!claims.sub) claims.sub = 'testuser';
-    if (!claims.cqrcfg_acl) {
-      claims.cqrcfg_acl = [
-        { path: '/config', allow: ['read', 'write', 'list'] }
-      ];
-    }
+    // if (!claims.cqrcfg_acl) {
+    //   claims.cqrcfg_acl = [
+    //     { path: '/config', allow: ['read', 'write', 'list'] }
+    //   ];
+    // }
 
     const token = await generateToken(claims);
     res.writeHead(200, { 'Content-Type': 'application/json' });
