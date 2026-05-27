@@ -41,7 +41,7 @@ describe('Config API', async () => {
     // Create test token
     token = await createTestToken({
       sub: 'test-user',
-      cqrcfg_acl: [
+      authz_rules: [
         { path: '/config', allow: ['read', 'write'] },
       ],
     });
@@ -245,7 +245,7 @@ describe('Config API', async () => {
     // Create test data with list permission
     const listToken = await createTestToken({
       sub: 'list-user',
-      cqrcfg_acl: [
+      authz_rules: [
         { path: '/config', allow: ['read', 'write', 'list'] },
       ],
     });
@@ -289,7 +289,7 @@ describe('Config API', async () => {
     // Token with only read/write, no list
     const noListToken = await createTestToken({
       sub: 'no-list-user',
-      cqrcfg_acl: [
+      authz_rules: [
         { path: '/config', allow: ['read', 'write'] },
       ],
     });
@@ -306,7 +306,7 @@ describe('Config API', async () => {
   it('should return 404 for list on empty path', async () => {
     const listToken = await createTestToken({
       sub: 'list-user',
-      cqrcfg_acl: [
+      authz_rules: [
         { path: '/config', allow: ['list'] },
       ],
     });
@@ -323,7 +323,7 @@ describe('Config API', async () => {
   it('should search paths with wildcards', async () => {
     const listToken = await createTestToken({
       sub: 'list-user',
-      cqrcfg_acl: [
+      authz_rules: [
         { path: '/config', allow: ['read', 'write', 'list'] },
       ],
     });
@@ -366,7 +366,7 @@ describe('Config API', async () => {
   it('should search paths with ** wildcard', async () => {
     const listToken = await createTestToken({
       sub: 'list-user',
-      cqrcfg_acl: [
+      authz_rules: [
         { path: '/config', allow: ['read', 'write', 'list'] },
       ],
     });
@@ -431,14 +431,14 @@ describe('Authorization', async () => {
 
   it('should allow read with read permission', async () => {
     const readOnlyToken = await createTestToken({
-      cqrcfg_acl: [
+      authz_rules: [
         { path: '/config/app1', allow: ['read'] },
       ],
     });
 
     // First create some data with a full-access token
     const fullToken = await createTestToken({
-      cqrcfg_acl: [
+      authz_rules: [
         { path: '/config', allow: ['read', 'write'] },
       ],
     });
@@ -465,7 +465,7 @@ describe('Authorization', async () => {
 
   it('should deny write with read-only permission', async () => {
     const readOnlyToken = await createTestToken({
-      cqrcfg_acl: [
+      authz_rules: [
         { path: '/config/app1', allow: ['read'] },
       ],
     });
@@ -485,7 +485,7 @@ describe('Authorization', async () => {
 
   it('should deny access to unauthorized path', async () => {
     const token = await createTestToken({
-      cqrcfg_acl: [
+      authz_rules: [
         { path: '/config/app1', allow: ['read', 'write'] },
       ],
     });
@@ -501,7 +501,7 @@ describe('Authorization', async () => {
 
   it('should use boundary-safe prefix matching', async () => {
     const token = await createTestToken({
-      cqrcfg_acl: [
+      authz_rules: [
         { path: '/config/app1', allow: ['read', 'write'] },
       ],
     });

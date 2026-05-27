@@ -91,8 +91,8 @@ const server = createServer(async (req, res) => {
 
     // Default claims if not provided
     if (!claims.sub) claims.sub = 'testuser';
-    // if (!claims.cqrcfg_acl) {
-    //   claims.cqrcfg_acl = [
+    // if (!claims.authz_rules) {
+    //   claims.authz_rules = [
     //     { path: '/config', allow: ['read', 'write', 'list'] }
     //   ];
     // }
@@ -137,7 +137,7 @@ const server = createServer(async (req, res) => {
   <label>Claims (JSON):</label>
   <textarea id="claims">{
   "sub": "testuser",
-  "cqrcfg_acl": [
+  "authz_rules": [
     {
       "path": "/config",
       "allow": ["read", "write", "list"]

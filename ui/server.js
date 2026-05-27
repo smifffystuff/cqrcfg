@@ -28,7 +28,7 @@ window.__CQRCFG_AUTH_HEADER__ = '${process.env.UI_AUTH_HEADER || ''}';
 window.__CQRCFG_AUTH_PATTERN__ = '${process.env.UI_AUTH_PATTERN || ''}';
 window.__CQRCFG_NAME_CLAIM__ = '${process.env.UI_NAME_CLAIM || 'sub'}';
 window.__CQRCFG_USERNAME_CLAIM__ = '${process.env.UI_USERNAME_CLAIM || 'sub'}';
-window.__CQRCFG_ACL_CLAIM__ = '${process.env.UI_ACL_CLAIM || 'cqrcfg_acl'}';
+window.__CQRCFG_ACL_CLAIM__ = '${process.env.UI_ACL_CLAIM || 'authz_rules'}';
 window.__CQRCFG_ACL_CACHE_TTL__ = ${process.env.UI_ACL_CACHE_TTL || 300};
 `;
 

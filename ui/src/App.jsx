@@ -10,7 +10,7 @@ import { api, isProxyAuthMode } from './api';
 const envName = window.__CQRCFG_ENV__ || '';
 const nameClaim = window.__CQRCFG_NAME_CLAIM__ || 'sub';
 const usernameClaim = window.__CQRCFG_USERNAME_CLAIM__ || 'sub';
-const aclClaim = window.__CQRCFG_ACL_CLAIM__ || 'cqrcfg_acl';
+const aclClaim = window.__CQRCFG_ACL_CLAIM__ || 'authz_rules';
 const aclCacheTtl = (window.__CQRCFG_ACL_CACHE_TTL__ || 300) * 1000;
 
 // Cache for permissions fetched from URLs

@@ -123,7 +123,7 @@ async function verifyToken(token, headers) {
 
   return {
     sub: claims.sub || payload.sub,
-    permissions: claims.cqrcfg_acl || [],
+    permissions: claims[config.oidc.aclClaim] || [],
   };
 }
 

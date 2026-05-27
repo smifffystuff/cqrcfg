@@ -56,7 +56,7 @@ describe('JWT Authentication', async () => {
   it('should accept valid JWT token', async () => {
     const token = await createTestToken({
       sub: 'user123',
-      cqrcfg_acl: [{ path: '/config', allow: ['read'] }],
+      authz_rules: [{ path: '/config', allow: ['read'] }],
     });
 
     const response = await fastify.inject({
@@ -114,7 +114,7 @@ describe('JWT Authentication', async () => {
     const token = await createTestToken({
       sub: 'user456',
       email: 'user@example.com',
-      cqrcfg_acl: [
+      authz_rules: [
         { path: '/config/app1', allow: ['read', 'write'] },
       ],
     });
