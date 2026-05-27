@@ -1,5 +1,9 @@
 # Releases
 
+## v1.0.0-build.8 — 2026-05-27
+
+- Support ACL claims as array of JSON strings (normalize to objects)
+
 ## v1.0.0-build.7 — 2026-05-27
 
 - Update ACL claim references to use `authz_rules`
