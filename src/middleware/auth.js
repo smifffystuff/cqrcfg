@@ -348,6 +348,21 @@ export async function authHook(request, reply) {
       }
     }
 
+    // Normalize array of JSON strings to array of objects
+    if (Array.isArray(acl)) {
+      acl = acl.map((entry) => {
+        if (typeof entry === 'string') {
+          try {
+            return JSON.parse(entry);
+          } catch {
+            logger.warn({ entry }, `Failed to parse ${aclClaim} array entry as JSON`);
+            return null;
+          }
+        }
+        return entry;
+      }).filter(Boolean);
+    }
+
     request.user = {
       sub: claims.sub || payload.sub,
       permissions: acl,
