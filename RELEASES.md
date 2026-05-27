@@ -1,5 +1,9 @@
 # Releases
 
+## v1.0.0-build.9 — 2026-05-27
+
+- Clean up ACL normalization logic
+
 ## v1.0.0-build.8 — 2026-05-27
 
 - Support ACL claims as array of JSON strings (normalize to objects)
