@@ -360,7 +360,7 @@ export async function authHook(request, reply) {
           }
         }
         return entry;
-      }).filter(Boolean);
+      });
     }
 
     request.user = {
