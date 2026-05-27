@@ -1,5 +1,11 @@
 # Releases
 
+## v1.0.0-build.7 — 2026-05-27
+
+- Update ACL claim references to use `authz_rules`
+- Update claims handling in auth middleware
+- Remove local `cqrcfg` dependency from package.json
+
 ## v1.0.0-build.6 — 2026-05-23
 
 - Include `logLevel` in startup log output for better diagnostics
