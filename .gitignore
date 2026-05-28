@@ -10,3 +10,7 @@ deploy_keys/
 local_setup/
 package-lock.json
 config/
+.claude/
+*.md
+!README.md
+!RELEASES.md
