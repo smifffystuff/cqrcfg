@@ -1,5 +1,10 @@
 # Releases
 
+## v1.0.0-build.10 — 2026-05-28
+
+- Add available endpoint listing to startup log output
+- Remove unused files from repository
+
 ## v1.0.0-build.9 — 2026-05-27
 
 - Clean up ACL normalization logic
