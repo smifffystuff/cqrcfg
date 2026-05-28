@@ -24,13 +24,6 @@ async function main() {
   // Register WebSocket plugin
   await fastify.register(websocket);
 
-  // Log all requests when Host matches the Kafka ingress
-  fastify.addHook('onRequest', async (request) => {
-    if (request.headers.host === 'kafka.streamproc.contentmgmt.int.pib.dowjones.io' || request.headers.host === 'streamproc-cqrcfg.djin-contentmgmt.svc.cluster.local:3000') {
-      request.log.debug({ host: request.headers.host, headers: request.headers }, `incoming request: ${request.method} ${request.url}`);
-    }
-  });
-
   // Health check endpoint (no auth required)
   fastify.get('/health', async () => {
     return {
@@ -86,6 +79,16 @@ async function main() {
   });
 
   logger.info({ port: config.server.port, host: config.server.host, storage: config.storage.type, notifications: config.notifications.type, logLevel: config.logLevel }, 'Config service started');
+  logger.info([
+    'Endpoints:',
+    '  GET    /health        - Health check',
+    '  GET    /config/*      - Get config subtree',
+    '  POST   /config/*      - Merge config (preserves missing values)',
+    '  PUT    /config/*      - Replace config (overwrites all values)',
+    '  DELETE /config/*      - Delete config subtree',
+    '  (POST/PUT support ?from=... to copy from another path)',
+    '  WS     /stream/*      - Subscribe to changes',
+  ].join('\n'), 'Available endpoints');
 
   // Graceful shutdown
   let shuttingDown = false;
