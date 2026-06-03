@@ -18,6 +18,8 @@ export function createNotificationBroker() {
         topic: config.notifications.kafka.topic,
         clientId: config.notifications.kafka.clientId,
         groupId: config.notifications.kafka.groupId,
+        ssl: config.notifications.kafka.ssl,
+        sasl: config.notifications.kafka.sasl,
       });
 
     case 'amqp':

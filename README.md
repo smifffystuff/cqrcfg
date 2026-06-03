@@ -358,6 +358,19 @@ In proxy auth mode:
 | `NOTIFICATIONS_TYPE` | `websocket` | Notification broker: `websocket`, `kafka`, `amqp` |
 | `KAFKA_BROKERS` | `localhost:9092` | Comma-separated Kafka brokers |
 | `KAFKA_TOPIC` | `cqrcfg-changes` | Kafka topic for changes |
+| `KAFKA_CLIENT_ID` | `cqrcfg` | Kafka client identifier |
+| `KAFKA_GROUP_ID` | `cqrcfg-group` | Kafka consumer group ID |
+| `KAFKA_SSL` | `false` | Enable SSL/TLS for Kafka connections |
+| `KAFKA_SSL_REJECT_UNAUTHORIZED` | `true` | Reject connections with untrusted certificates |
+| `KAFKA_SSL_CA` | (none) | Path to CA certificate file (PEM) |
+| `KAFKA_SSL_KEY` | (none) | Path to client private key file (PEM) |
+| `KAFKA_SSL_CERT` | (none) | Path to client certificate file (PEM) |
+| `KAFKA_SASL_MECHANISM` | (none) | SASL mechanism: `plain`, `scram-sha-256`, `scram-sha-512`, `oauthbearer` |
+| `KAFKA_SASL_USERNAME` | (none) | Username for `plain` / `scram-sha-*` |
+| `KAFKA_SASL_PASSWORD` | (none) | Password for `plain` / `scram-sha-*` |
+| `KAFKA_SASL_CLIENT_ID` | (none) | OAuth client ID for `oauthbearer` |
+| `KAFKA_SASL_CLIENT_SECRET` | (none) | OAuth client secret for `oauthbearer` |
+| `KAFKA_SASL_TOKEN_URI` | (none) | OAuth token endpoint URL for `oauthbearer` |
 | `AMQP_URL` | `amqp://localhost` | AMQP connection URL |
 | `AMQP_EXCHANGE` | `cqrcfg` | AMQP exchange name |
 

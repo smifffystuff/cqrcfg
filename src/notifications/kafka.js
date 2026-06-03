@@ -1,6 +1,51 @@
+import { readFileSync } from 'fs';
 import { Kafka, Partitioners } from 'kafkajs';
 import { NotificationsInterface } from './interface.js';
 import { logger } from '../logger.js';
+
+function buildSslConfig(ssl) {
+  if (!ssl || !ssl.enabled) return undefined;
+  const cfg = { rejectUnauthorized: ssl.rejectUnauthorized };
+  if (ssl.ca) cfg.ca = [readFileSync(ssl.ca, 'utf8')];
+  if (ssl.key) cfg.key = readFileSync(ssl.key, 'utf8');
+  if (ssl.cert) cfg.cert = readFileSync(ssl.cert, 'utf8');
+  return cfg;
+}
+
+function buildSaslConfig(sasl) {
+  if (!sasl || !sasl.mechanism) return undefined;
+  const mechanism = sasl.mechanism.toLowerCase();
+
+  if (mechanism === 'plain' || mechanism === 'scram-sha-256' || mechanism === 'scram-sha-512') {
+    return { mechanism, username: sasl.username, password: sasl.password };
+  }
+
+  if (mechanism === 'oauthbearer') {
+    const { clientId, clientSecret, tokenUri } = sasl;
+    return {
+      mechanism: 'oauthbearer',
+      oauthBearerProvider: async () => {
+        const body = new URLSearchParams({
+          grant_type: 'client_credentials',
+          client_id: clientId,
+          client_secret: clientSecret,
+        });
+        const res = await fetch(tokenUri, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: body.toString(),
+        });
+        if (!res.ok) {
+          throw new Error(`OAuth token request failed: ${res.status} ${res.statusText}`);
+        }
+        const data = await res.json();
+        return { value: data.access_token };
+      },
+    };
+  }
+
+  throw new Error(`Unsupported KAFKA_SASL_MECHANISM: ${sasl.mechanism}`);
+}
 
 export class KafkaNotifications extends NotificationsInterface {
   constructor(options) {
@@ -9,6 +54,8 @@ export class KafkaNotifications extends NotificationsInterface {
     this.topic = options.topic || 'cqrcfg-changes';
     this.clientId = options.clientId || 'cqrcfg';
     this.groupId = options.groupId || 'cqrcfg-group';
+    this.sslConfig = buildSslConfig(options.ssl);
+    this.saslConfig = buildSaslConfig(options.sasl);
 
     this.kafka = null;
     this.producer = null;
@@ -18,10 +65,14 @@ export class KafkaNotifications extends NotificationsInterface {
   }
 
   async connect() {
-    this.kafka = new Kafka({
+    const kafkaConfig = {
       clientId: this.clientId,
       brokers: this.brokers,
-    });
+    };
+    if (this.sslConfig) kafkaConfig.ssl = this.sslConfig;
+    if (this.saslConfig) kafkaConfig.sasl = this.saslConfig;
+
+    this.kafka = new Kafka(kafkaConfig);
 
     // Initialize producer
     this.producer = this.kafka.producer({
