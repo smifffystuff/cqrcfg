@@ -1,5 +1,9 @@
 # Releases
 
+## v1.0.0-build.11 — 2026-06-04
+
+- Enhance health check endpoint with log level warning and status/storage type response
+
 ## v1.0.0-build.10 — 2026-05-28
 
 - Add available endpoint listing to startup log output
