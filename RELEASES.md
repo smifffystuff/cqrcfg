@@ -1,5 +1,12 @@
 # Releases
 
+## v1.0.0-build.12 — 2026-06-04
+
+- Add Kafka SSL/TLS and SASL authentication support (plain, scram, oauthbearer)
+- Auto-create Kafka topic on startup if it doesn't exist
+- Replace KAFKA_GROUP_ID with KAFKA_GROUP_ID_PREFIX/SUFFIX for per-deployment consumer groups
+- Update .gitignore to refine ignored files
+
 ## v1.0.0-build.11 — 2026-06-04
 
 - Enhance health check endpoint with log level warning and status/storage type response
