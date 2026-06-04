@@ -74,6 +74,8 @@ export class KafkaNotifications extends NotificationsInterface {
 
     this.kafka = new Kafka(kafkaConfig);
 
+    await this._ensureTopicExists();
+
     // Initialize producer
     this.producer = this.kafka.producer({
       createPartitioner: Partitioners.DefaultPartitioner,
@@ -89,6 +91,35 @@ export class KafkaNotifications extends NotificationsInterface {
     await this._startConsumer();
 
     logger.info({ brokers: this.brokers }, 'Kafka notifications connected');
+  }
+
+  async _ensureTopicExists() {
+    const admin = this.kafka.admin();
+    try {
+      await admin.connect();
+      const topics = await admin.listTopics();
+      if (topics.includes(this.topic)) return;
+
+      logger.info({ topic: this.topic }, 'Kafka topic does not exist, creating');
+      await admin.createTopics({
+        waitForLeaders: true,
+        topics: [{ topic: this.topic }],
+      });
+
+      // Allow metadata to propagate across brokers
+      const maxAttempts = 5;
+      for (let i = 0; i < maxAttempts; i++) {
+        await new Promise(r => setTimeout(r, 1000));
+        const metadata = await admin.fetchTopicMetadata({ topics: [this.topic] }).catch(() => null);
+        if (metadata?.topics?.[0]?.partitions?.length > 0) {
+          logger.info({ topic: this.topic }, 'Kafka topic created');
+          return;
+        }
+      }
+      logger.warn({ topic: this.topic }, 'Kafka topic created but metadata propagation may be incomplete');
+    } finally {
+      await admin.disconnect();
+    }
   }
 
   async _startConsumer() {

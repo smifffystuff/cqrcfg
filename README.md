@@ -359,7 +359,8 @@ In proxy auth mode:
 | `KAFKA_BROKERS` | `localhost:9092` | Comma-separated Kafka brokers |
 | `KAFKA_TOPIC` | `cqrcfg-changes` | Kafka topic for changes |
 | `KAFKA_CLIENT_ID` | `cqrcfg` | Kafka client identifier |
-| `KAFKA_GROUP_ID` | `cqrcfg-group` | Kafka consumer group ID |
+| `KAFKA_GROUP_ID_PREFIX` | `cqrcfg` | Kafka consumer group ID prefix |
+| `KAFKA_GROUP_ID_SUFFIX` | (none) | Kafka consumer group ID suffix (appended with `-` separator) |
 | `KAFKA_SSL` | `false` | Enable SSL/TLS for Kafka connections |
 | `KAFKA_SSL_REJECT_UNAUTHORIZED` | `true` | Reject connections with untrusted certificates |
 | `KAFKA_SSL_CA` | (none) | Path to CA certificate file (PEM) |

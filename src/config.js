@@ -46,7 +46,10 @@ export const config = {
         : ['localhost:9092'],
       topic: process.env.KAFKA_TOPIC || 'cqrcfg-changes',
       clientId: process.env.KAFKA_CLIENT_ID || 'cqrcfg',
-      groupId: process.env.KAFKA_GROUP_ID || 'cqrcfg-group',
+      groupId: [
+        process.env.KAFKA_GROUP_ID_PREFIX || 'cqrcfg',
+        process.env.KAFKA_GROUP_ID_SUFFIX,
+      ].filter(Boolean).join('-'),
       ssl: {
         enabled: process.env.KAFKA_SSL === 'true',
         rejectUnauthorized: process.env.KAFKA_SSL_REJECT_UNAUTHORIZED !== 'false',
