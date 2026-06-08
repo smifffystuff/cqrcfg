@@ -153,6 +153,13 @@ export const api = {
     const streamPath = path.replace(/^\/config\/?/, '');
     const tokenParam = token && token !== '__PROXY_AUTH__' ? `?token=${encodeURIComponent(token)}` : '';
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    if (isProxyAuthMode) {
+      // In proxy auth mode, route through the UI server's /ws proxy
+      // which forwards headers (including auth) and supports WebSocket upgrades
+      const basePath = window.__CQRCFG_BASE_PATH__ || '/';
+      const prefix = basePath.replace(/\/$/, '');
+      return `${wsProtocol}//${window.location.host}${prefix}/ws/stream/${streamPath}${tokenParam}`;
+    }
     if (API_BASE.startsWith('http')) {
       const wsBase = API_BASE.replace(/\/api\/?$/, '').replace(/^http/, 'ws');
       return `${wsBase}/stream/${streamPath}${tokenParam}`;
