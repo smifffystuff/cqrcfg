@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import fastifyStatic from '@fastify/static';
 import fastifyHttpProxy from '@fastify/http-proxy';
+import fastifyWebsocket from '@fastify/websocket';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -49,6 +50,9 @@ fastify.get('/config.js', async (request, reply) => {
     .header('Cache-Control', 'no-cache, no-store')
     .send(runtimeConfig);
 });
+
+// WebSocket support (required for @fastify/http-proxy websocket: true)
+await fastify.register(fastifyWebsocket);
 
 // API proxy
 await fastify.register(fastifyHttpProxy, {
