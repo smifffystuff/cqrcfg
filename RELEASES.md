@@ -1,5 +1,12 @@
 # Releases
 
+## v1.0.0-build.14 — 2026-06-08
+
+- Fix WebSocket stream auth to use shared JWKS resolution (was broken by missing config key)
+- Fix Vite dev proxy for WebSocket connections (route through /ws prefix)
+- Fix WebSocket subscription path double-prefixing (/config/config → /config)
+- Forward cross-instance change events to local WebSocket clients for real-time sync
+
 ## v1.0.0-build.13 — 2026-06-08
 
 - Enhance concurrency control and cache synchronization
