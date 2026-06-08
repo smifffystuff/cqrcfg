@@ -1,5 +1,9 @@
 # Releases
 
+## v1.0.0-build.18 — 2026-06-08
+
+- Fix missing leading slash in WebSocket base path URL construction
+
 ## v1.0.0-build.17 — 2026-06-08
 
 - Route WebSocket through UI server's /ws proxy in proxy auth mode (fixes connection failures when mesh proxy doesn't support WS upgrades on API path)
