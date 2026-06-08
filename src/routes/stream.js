@@ -55,16 +55,20 @@ export default async function streamRoutes(fastify) {
         return;
       }
 
-      // Extract token from query string or Authorization header
-      const token = request.query.token ||
-        request.headers.authorization?.replace('Bearer ', '');
+      // Extract token from query string or configured auth header
+      const tokenHeader = config.auth.tokenHeader;
+      const headerValue = request.query.token || request.headers[tokenHeader];
 
-      if (!token) {
+      if (!headerValue) {
         logger.debug('[SOCKET] Rejecting connection - no token provided');
         socket.send(JSON.stringify({ type: 'error', message: 'Missing authentication token' }));
         socket.close(1008, 'Unauthorized');
         return;
       }
+
+      const token = config.auth.bearerPrefix
+        ? headerValue.replace(/^Bearer\s+/i, '')
+        : headerValue;
 
       // Verify token
       try {

@@ -149,7 +149,7 @@ function App() {
 
   // WebSocket connection for live updates
   useEffect(() => {
-    if (!token || token === '__PROXY_AUTH__') return;
+    if (!token) return;
 
     const wsUrl = api.getStreamUrl('/config', token);
     let ws;
