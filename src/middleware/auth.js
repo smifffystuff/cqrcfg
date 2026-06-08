@@ -291,6 +291,47 @@ async function extractClaimsFromHeaders(request, keySet) {
 }
 
 /**
+ * Verify a JWT token and return user info (sub + permissions).
+ * Used by both the HTTP auth hook and WebSocket stream routes.
+ */
+export async function verifyToken(token, headers) {
+  const keySet = await getJWKS();
+  const { payload } = await verifyJwtWithFallback(token, keySet, getJwtVerifyOptions());
+
+  const externalClaims = await extractClaimsFromHeaders({ headers: headers || {} }, keySet);
+  const claims = externalClaims || payload;
+
+  let acl = claims[config.oidc.aclClaim] || [];
+
+  if (typeof acl === 'string') {
+    try {
+      acl = JSON.parse(acl);
+    } catch {
+      if (acl.startsWith('http://') || acl.startsWith('https://')) {
+        acl = await fetchAclFromUrl(acl);
+      } else {
+        acl = [];
+      }
+    }
+  }
+
+  if (Array.isArray(acl)) {
+    acl = acl.map((entry) => {
+      if (typeof entry === 'string') {
+        try { return JSON.parse(entry); } catch { return null; }
+      }
+      return entry;
+    });
+  }
+
+  return {
+    sub: claims.sub || payload.sub,
+    permissions: acl,
+    claims,
+  };
+}
+
+/**
  * Authentication hook - validates JWT and attaches user to request
  */
 export async function authHook(request, reply) {
@@ -319,55 +360,8 @@ export async function authHook(request, reply) {
   }
 
   try {
-    const keySet = await getJWKS();
-    const { payload } = await verifyJwtWithFallback(token, keySet, getJwtVerifyOptions());
-
-    // Check for claims in separate headers (e.g., from a proxy that extracts id_token claims)
-    // JWT-format headers are verified, JSON/base64 headers are parsed directly
-    const externalClaims = await extractClaimsFromHeaders(request, keySet);
-    const claims = externalClaims || payload;
-
-    logger.debug({ claims }, 'Authenticated user claims');
-    // Attach user info to request
-    const aclClaim = config.oidc.aclClaim;
-    let acl = claims[aclClaim] || [];
-
-    // Parse ACL - could be array, JSON string, or URL
-    if (typeof acl === 'string') {
-      // Try JSON parse first
-      try {
-        acl = JSON.parse(acl);
-      } catch {
-        // Check if it's a URL
-        if (acl.startsWith('http://') || acl.startsWith('https://')) {
-          acl = await fetchAclFromUrl(acl);
-        } else {
-          console.warn(`Failed to parse ${aclClaim} claim as JSON or URL`);
-          acl = [];
-        }
-      }
-    }
-
-    // Normalize array of JSON strings to array of objects
-    if (Array.isArray(acl)) {
-      acl = acl.map((entry) => {
-        if (typeof entry === 'string') {
-          try {
-            return JSON.parse(entry);
-          } catch {
-            logger.warn({ entry }, `Failed to parse ${aclClaim} array entry as JSON`);
-            return null;
-          }
-        }
-        return entry;
-      });
-    }
-
-    request.user = {
-      sub: claims.sub || payload.sub,
-      permissions: acl,
-      claims,
-    };
+    request.user = await verifyToken(token, request.headers);
+    logger.debug({ claims: request.user.claims }, 'Authenticated user claims');
   } catch (error) {
     logger.warn({ err: error.message }, 'JWT verification failed');
 

@@ -21,9 +21,11 @@ export class WebSocketNotifications extends NotificationsInterface {
   }
 
   async publish(path, event) {
+    logger.debug('[SOCKET] Publishing event for path=%s op=%s (%d active subscriptions)', path, event.operation, this.subscriptions.size);
     // Find all subscriptions that match this path
     for (const [prefix, callbacks] of this.subscriptions.entries()) {
       if (path === prefix || path.startsWith(prefix + '/')) {
+        logger.debug('[SOCKET] Matched subscription prefix=%s (%d callbacks)', prefix, callbacks.size);
         for (const callback of callbacks) {
           try {
             callback(event);
@@ -40,6 +42,7 @@ export class WebSocketNotifications extends NotificationsInterface {
       this.subscriptions.set(pathPrefix, new Set());
     }
     this.subscriptions.get(pathPrefix).add(callback);
+    logger.debug('[SOCKET] New subscription for prefix=%s (total subscriptions: %d)', pathPrefix, this.subscriptions.size);
 
     return {
       unsubscribe: () => {
@@ -50,6 +53,7 @@ export class WebSocketNotifications extends NotificationsInterface {
             this.subscriptions.delete(pathPrefix);
           }
         }
+        logger.debug('[SOCKET] Unsubscribed from prefix=%s (total subscriptions: %d)', pathPrefix, this.subscriptions.size);
       },
     };
   }

@@ -150,11 +150,12 @@ export const api = {
   },
 
   getStreamUrl(path, token) {
-    const base = API_BASE.replace(/\/api\/?$/, '').replace(/^\./, '');
+    const streamPath = path.replace(/^\/config\/?/, '');
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsBase = base.startsWith('http')
-      ? base.replace(/^http/, 'ws')
-      : `${wsProtocol}//${window.location.host}${base}`;
-    return `${wsBase}/stream${path}?token=${encodeURIComponent(token)}`;
+    if (API_BASE.startsWith('http')) {
+      const wsBase = API_BASE.replace(/\/api\/?$/, '').replace(/^http/, 'ws');
+      return `${wsBase}/stream/${streamPath}?token=${encodeURIComponent(token)}`;
+    }
+    return `${wsProtocol}//${window.location.host}/ws/stream/${streamPath}?token=${encodeURIComponent(token)}`;
   },
 };

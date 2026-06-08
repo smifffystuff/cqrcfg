@@ -156,11 +156,18 @@ function App() {
     let reconnectTimer;
 
     function connect() {
+      console.debug('[SOCKET] Connecting to %s', wsUrl);
       ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        console.debug('[SOCKET] Connection established');
+      };
 
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
+          console.debug('[SOCKET] Received message type=%s', msg.type, msg);
+
           if (msg.type !== 'change') return;
 
           const changedPath = msg.path;
@@ -169,6 +176,7 @@ function App() {
           if (selectedPathRef.current && changedPath === selectedPathRef.current) {
             if (hasChangesRef.current) {
               // User has unsaved edits — show warning, don't overwrite
+              console.debug('[SOCKET] Remote change conflicts with local edits path=%s', changedPath);
               setRemoteChange({
                 path: changedPath,
                 revision: msg.revision,
@@ -176,6 +184,7 @@ function App() {
               });
             } else {
               // No unsaved edits — silently refresh
+              console.debug('[SOCKET] Auto-refreshing path=%s (no local changes)', changedPath);
               loadConfigSilent(changedPath);
               showToast('Configuration updated by another user');
             }
@@ -183,14 +192,20 @@ function App() {
 
           // Refresh the path list if the change is under the current browse path
           if (changedPath.startsWith(currentPath + '/') || changedPath === currentPath) {
+            console.debug('[SOCKET] Refreshing path list for currentPath=%s', currentPath);
             loadPathsSilent(currentPath);
           }
         } catch { /* ignore malformed messages */ }
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
+        console.debug('[SOCKET] Connection closed code=%d reason=%s', event.code, event.reason);
         // Reconnect after a delay
         reconnectTimer = setTimeout(connect, 5000);
+      };
+
+      ws.onerror = (event) => {
+        console.debug('[SOCKET] Connection error', event);
       };
 
       wsRef.current = ws;
@@ -199,6 +214,7 @@ function App() {
     connect();
 
     return () => {
+      console.debug('[SOCKET] Cleaning up connection');
       clearTimeout(reconnectTimer);
       if (ws) ws.close();
       wsRef.current = null;

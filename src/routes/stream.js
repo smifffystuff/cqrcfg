@@ -1,131 +1,8 @@
-import * as jose from 'jose';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import { verifyToken } from '../middleware/auth.js';
 import { subscribeToChanges, supportsSubscription } from '../services/notificationService.js';
-
-let jwks = null;
-
-async function getJWKS() {
-  if (jwks) return jwks;
-
-  jwks = jose.createRemoteJWKSet(new URL(config.oidc.jwksUri));
-  return jwks;
-}
-
-/**
- * Check if a string looks like a JWT (three base64url segments separated by dots)
- */
-function isJwtFormat(value) {
-  const parts = value.split('.');
-  return parts.length === 3;
-}
-
-/**
- * Parse a header value as JSON (supports base64 or plain JSON)
- */
-function parseJsonHeaderValue(headerValue) {
-  if (!headerValue) return null;
-
-  try {
-    // Try base64 decode first (common for proxied claims)
-    const decoded = Buffer.from(headerValue, 'base64').toString('utf-8');
-    return JSON.parse(decoded);
-  } catch {
-    // Try plain JSON
-    try {
-      return JSON.parse(headerValue);
-    } catch {
-      return null;
-    }
-  }
-}
-
-/**
- * Build JWT verify options based on config
- */
-function getJwtVerifyOptions() {
-  const options = {
-    algorithms: ['RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'ES512'],
-  };
-
-  if (config.oidc.audience) {
-    options.audience = config.oidc.audience;
-  }
-
-  return options;
-}
-
-/**
- * Parse and verify a JWT header value, returning the payload claims
- */
-async function parseJwtHeaderValue(headerValue, keySet) {
-  if (!headerValue) return null;
-
-  const { payload } = await jose.jwtVerify(headerValue, keySet, getJwtVerifyOptions());
-  return payload;
-}
-
-/**
- * Parse a header value - auto-detects JWT vs JSON/base64 format
- * JWTs are verified using the JWKS, JSON values are parsed directly
- */
-async function parseHeaderValue(headerValue, keySet) {
-  if (!headerValue) return null;
-
-  // Check if it looks like a JWT
-  if (isJwtFormat(headerValue)) {
-    return parseJwtHeaderValue(headerValue, keySet);
-  }
-
-  // Otherwise try JSON/base64
-  return parseJsonHeaderValue(headerValue);
-}
-
-/**
- * Extract and merge claims from configured header chain.
- * Headers are processed in order, with later headers taking precedence.
- * JWT headers are verified, JSON/base64 headers are parsed directly.
- */
-async function extractClaimsFromHeaders(headers, keySet) {
-  const claimsHeaders = config.oidc.claimsHeaders;
-  if (!claimsHeaders || claimsHeaders.length === 0) return null;
-
-  let mergedClaims = null;
-
-  for (const headerName of claimsHeaders) {
-    const headerValue = headers[headerName.toLowerCase()];
-    const claims = await parseHeaderValue(headerValue, keySet);
-
-    if (claims) {
-      if (mergedClaims === null) {
-        mergedClaims = claims;
-      } else {
-        // Merge claims, later headers override earlier ones
-        mergedClaims = { ...mergedClaims, ...claims };
-      }
-    }
-  }
-
-  return mergedClaims;
-}
-
-/**
- * Verify JWT token and extract user info
- */
-async function verifyToken(token, headers) {
-  const keySet = await getJWKS();
-  const { payload } = await jose.jwtVerify(token, keySet, getJwtVerifyOptions());
-
-  // Check for claims in separate headers (e.g., from a proxy that extracts id_token claims)
-  // JWT-format headers are verified, JSON/base64 headers are parsed directly
-  const externalClaims = await extractClaimsFromHeaders(headers, keySet);
-  const claims = externalClaims || payload;
-
-  return {
-    sub: claims.sub || payload.sub,
-    permissions: claims[config.oidc.aclClaim] || [],
-  };
-}
+import { onLocalChange } from '../services/cacheSync.js';
 
 /**
  * Check if user has read permission for a path
@@ -164,9 +41,12 @@ export default async function streamRoutes(fastify) {
     let subscription = null;
     let user = null;
 
+    logger.debug('[SOCKET] New connection attempt from %s', request.ip);
+
     try {
       // Check if subscriptions are supported
       if (!supportsSubscription()) {
+        logger.debug('[SOCKET] Rejecting connection - subscriptions not supported');
         socket.send(JSON.stringify({
           type: 'error',
           message: 'Change notifications not supported by current broker',
@@ -180,6 +60,7 @@ export default async function streamRoutes(fastify) {
         request.headers.authorization?.replace('Bearer ', '');
 
       if (!token) {
+        logger.debug('[SOCKET] Rejecting connection - no token provided');
         socket.send(JSON.stringify({ type: 'error', message: 'Missing authentication token' }));
         socket.close(1008, 'Unauthorized');
         return;
@@ -188,7 +69,9 @@ export default async function streamRoutes(fastify) {
       // Verify token
       try {
         user = await verifyToken(token, request.headers);
+        logger.debug('[SOCKET] Token verified for user=%s', user.sub);
       } catch (error) {
+        logger.debug('[SOCKET] Token verification failed: %s', error.message);
         socket.send(JSON.stringify({ type: 'error', message: 'Invalid token' }));
         socket.close(1008, 'Unauthorized');
         return;
@@ -198,7 +81,9 @@ export default async function streamRoutes(fastify) {
       let configPath;
       try {
         configPath = normalizePath(request.url);
+        logger.debug('[SOCKET] Normalized path=%s from url=%s', configPath, request.url);
       } catch (error) {
+        logger.debug('[SOCKET] Path normalization failed: %s', error.message);
         socket.send(JSON.stringify({ type: 'error', message: error.message }));
         socket.close(1008, 'Bad Request');
         return;
@@ -206,6 +91,7 @@ export default async function streamRoutes(fastify) {
 
       // Check authorization
       if (!hasReadPermission(user, configPath)) {
+        logger.debug('[SOCKET] Access denied for user=%s path=%s', user.sub, configPath);
         socket.send(JSON.stringify({
           type: 'error',
           message: `Access denied: no read permission for ${configPath}`,
@@ -215,6 +101,7 @@ export default async function streamRoutes(fastify) {
       }
 
       // Send connected message
+      logger.debug('[SOCKET] Sending connected message to user=%s path=%s', user.sub, configPath);
       socket.send(JSON.stringify({
         type: 'connected',
         path: configPath,
@@ -222,10 +109,15 @@ export default async function streamRoutes(fastify) {
         notifications: config.notifications.type,
       }));
 
-      // Subscribe to changes via broker
-      subscription = await subscribeToChanges(configPath, (event) => {
+      // Handler for sending change events to this client
+      function sendChangeEvent(event) {
+        // Filter: must be under the subscribed path
+        if (event.path !== configPath && !event.path.startsWith(configPath + '/')) {
+          return;
+        }
         // Filter out changes for paths the user doesn't have access to
         if (event.path && !hasReadPermission(user, event.path)) {
+          logger.debug('[SOCKET] Filtering event for path=%s - user=%s lacks permission', event.path, user.sub);
           return;
         }
 
@@ -239,22 +131,36 @@ export default async function streamRoutes(fastify) {
         };
 
         if (socket.readyState === socket.OPEN) {
+          logger.debug('[SOCKET] Sending change event to user=%s: op=%s path=%s', user.sub, event.operation, event.path);
           socket.send(JSON.stringify(message));
+        } else {
+          logger.debug('[SOCKET] Skipping send - socket not open (readyState=%d)', socket.readyState);
         }
-      });
+      }
+
+      // Subscribe to local changes via broker
+      logger.debug('[SOCKET] Subscribing to changes for path=%s', configPath);
+      subscription = await subscribeToChanges(configPath, sendChangeEvent);
+
+      // Subscribe to cross-instance changes
+      const unsubRemote = onLocalChange(sendChangeEvent);
 
       // Handle client disconnect
-      socket.on('close', () => {
+      socket.on('close', (code, reason) => {
+        logger.debug('[SOCKET] Client disconnected user=%s path=%s code=%d reason=%s', user.sub, configPath, code, reason);
         if (subscription) {
           subscription.unsubscribe();
         }
+        unsubRemote();
       });
 
       socket.on('error', (error) => {
         logger.error(error, 'WebSocket error');
+        logger.debug('[SOCKET] Socket error for user=%s path=%s: %s', user.sub, configPath, error.message);
         if (subscription) {
           subscription.unsubscribe();
         }
+        unsubRemote();
       });
     } catch (error) {
       logger.error(error, 'WebSocket setup error');
