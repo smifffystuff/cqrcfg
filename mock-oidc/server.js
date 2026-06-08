@@ -3,6 +3,10 @@ import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 
 const PORT = 8888;
 const ISSUER = process.env.ISSUER || 'http://localhost:8888';
+const ACL_CLAIM = process.env.MOCK_ACL_CLAIM || 'cqrcfg_acl';
+const DEFAULT_ACL = JSON.parse(
+  process.env.MOCK_DEFAULT_ACL || '[{"path":"/config","allow":["read","write","list"]}]'
+);
 
 let privateKey;
 let publicJwk;
@@ -91,11 +95,9 @@ const server = createServer(async (req, res) => {
 
     // Default claims if not provided
     if (!claims.sub) claims.sub = 'testuser';
-    // if (!claims.authz_rules) {
-    //   claims.authz_rules = [
-    //     { path: '/config', allow: ['read', 'write', 'list'] }
-    //   ];
-    // }
+    if (!claims[ACL_CLAIM]) {
+      claims[ACL_CLAIM] = DEFAULT_ACL;
+    }
 
     const token = await generateToken(claims);
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -137,12 +139,7 @@ const server = createServer(async (req, res) => {
   <label>Claims (JSON):</label>
   <textarea id="claims">{
   "sub": "testuser",
-  "authz_rules": [
-    {
-      "path": "/config",
-      "allow": ["read", "write", "list"]
-    }
-  ]
+  "${ACL_CLAIM}": ${JSON.stringify(DEFAULT_ACL, null, 4).replace(/\n/g, '\n  ')}
 }</textarea>
 
   <button onclick="generateToken()">Generate Token</button>

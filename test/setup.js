@@ -28,7 +28,7 @@ export async function createTestToken(claims = {}, options = {}) {
 
   const defaultClaims = {
     sub: 'test-user',
-    authz_rules: [
+    cqrcfg_acl: [
       { path: '/config', allow: ['read', 'write'] },
     ],
   };

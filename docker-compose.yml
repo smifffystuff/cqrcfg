@@ -6,6 +6,9 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8888:8888"
+    environment:
+      - MOCK_ACL_CLAIM=${MOCK_ACL_CLAIM:-cqrcfg_acl}
+      - MOCK_DEFAULT_ACL=${MOCK_DEFAULT_ACL:-[{"path":"/config","allow":["read","write","list"]}]}
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:8888/.well-known/jwks.json').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
       interval: 5s
@@ -63,7 +66,7 @@ services:
       - UI_NAME_CLAIM=${UI_NAME_CLAIM:-sub}
       - UI_USERNAME_CLAIM=${UI_USERNAME_CLAIM:-sub}
       - UI_BASE_PATH=${UI_BASE_PATH:-/}
-      - UI_ACL_CLAIM=${UI_ACL_CLAIM:-authz_rules}
+      - UI_ACL_CLAIM=${UI_ACL_CLAIM:-cqrcfg_acl}
       - UI_ACL_CACHE_TTL=${UI_ACL_CACHE_TTL:-300}
     depends_on:
       - cqrcfg
