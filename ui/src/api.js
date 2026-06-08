@@ -157,7 +157,7 @@ export const api = {
       // In proxy auth mode, route through the UI server's /ws proxy
       // which forwards headers (including auth) and supports WebSocket upgrades
       const basePath = window.__CQRCFG_BASE_PATH__ || '/';
-      const prefix = basePath.replace(/\/$/, '');
+      const prefix = ('/' + basePath).replace(/\/+/g, '/').replace(/\/$/, '');
       return `${wsProtocol}//${window.location.host}${prefix}/ws/stream/${streamPath}${tokenParam}`;
     }
     if (API_BASE.startsWith('http')) {
