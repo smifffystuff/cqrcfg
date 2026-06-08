@@ -1,5 +1,9 @@
 # Releases
 
+## v1.0.0-build.13 — 2026-06-08
+
+- Enhance concurrency control and cache synchronization
+
 ## v1.0.0-build.12 — 2026-06-04
 
 - Add Kafka SSL/TLS and SASL authentication support (plain, scram, oauthbearer)
