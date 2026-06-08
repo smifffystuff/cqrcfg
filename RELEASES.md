@@ -1,5 +1,9 @@
 # Releases
 
+## v1.0.0-build.19 — 2026-06-08
+
+- Add @fastify/websocket dependency and register plugin in UI server (required for WebSocket proxy to handle upgrades)
+
 ## v1.0.0-build.18 — 2026-06-08
 
 - Fix missing leading slash in WebSocket base path URL construction
