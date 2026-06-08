@@ -1,5 +1,9 @@
 # Releases
 
+## v1.0.0-build.15 — 2026-06-08
+
+- Dummy Dockerfile change (test release)
+
 ## v1.0.0-build.14 — 2026-06-08
 
 - Fix WebSocket stream auth to use shared JWKS resolution (was broken by missing config key)
