@@ -14,6 +14,7 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+
 # Install git (required for git storage backend)
 RUN apk add --no-cache git openssh-client
 
