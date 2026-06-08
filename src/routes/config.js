@@ -4,12 +4,14 @@ import { normalizePathHook } from '../middleware/normalizePath.js';
 import {
   getSubtree,
   getSubtreeWithFilter,
+  getNode,
   listPaths,
   searchPaths,
   patchNode,
   putNode,
   deleteSubtree,
 } from '../services/configService.js';
+import { ConflictError } from '../storage/interface.js';
 import { hasWildcard } from '../storage/interface.js';
 import { getStorage } from '../storage/index.js';
 
@@ -18,6 +20,15 @@ function getAuthorOptions(request) {
   if (!storage.extractAuthorFromClaims) return {};
   const author = storage.extractAuthorFromClaims(request.user?.claims);
   return author ? { author } : {};
+}
+
+function getExpectedRevision(request) {
+  const ifMatch = request.headers['if-match'];
+  if (ifMatch) {
+    // Strip weak validator prefix and quotes if present
+    return ifMatch.replace(/^W\//, '').replace(/^"(.*)"$/, '$1');
+  }
+  return undefined;
 }
 
 /**
@@ -113,17 +124,28 @@ export default async function configRoutes(fastify) {
       const filters = request.query;
       const hasFilters = filters && Object.keys(filters).length > 0;
 
-      const tree = hasFilters
-        ? await getSubtreeWithFilter(path, filters)
-        : await getSubtree(path);
+      if (hasFilters) {
+        const tree = await getSubtreeWithFilter(path, filters);
+        if (tree === null) {
+          return reply.code(404).send({
+            error: 'Not Found',
+            message: `Configuration at path ${path} does not match filter criteria`,
+          });
+        }
+        return tree;
+      }
 
+      // For non-filtered reads, try to get the single node first (includes revision)
+      const node = await getNode(path);
+      if (node && node.revision) {
+        reply.header('ETag', `"${node.revision}"`);
+      }
+
+      const tree = await getSubtree(path);
       if (tree === null) {
-        const message = hasFilters
-          ? `Configuration at path ${path} does not match filter criteria`
-          : `No configuration found at path: ${path}`;
         return reply.code(404).send({
           error: 'Not Found',
-          message,
+          message: `No configuration found at path: ${path}`,
         });
       }
 
@@ -188,13 +210,34 @@ export default async function configRoutes(fastify) {
       }
     }
 
-    const result = await patchNode(destPath, data, getAuthorOptions(request));
-
-    return {
-      path: destPath,
-      data: result,
-      message: 'Configuration merged successfully',
+    const options = {
+      ...getAuthorOptions(request),
+      expectedRevision: getExpectedRevision(request),
     };
+
+    try {
+      const result = await patchNode(destPath, data, options);
+
+      if (result.revision) {
+        reply.header('ETag', `"${result.revision}"`);
+      }
+
+      return {
+        path: destPath,
+        data: result.data,
+        revision: result.revision,
+        message: 'Configuration merged successfully',
+      };
+    } catch (err) {
+      if (err instanceof ConflictError) {
+        return reply.code(409).send({
+          error: 'Conflict',
+          message: err.message,
+          currentRevision: err.currentRevision,
+        });
+      }
+      throw err;
+    }
   }
 
   /**
@@ -281,13 +324,34 @@ export default async function configRoutes(fastify) {
       }
     }
 
-    const result = await putNode(destPath, data, getAuthorOptions(request));
-
-    return {
-      path: destPath,
-      data: result,
-      message: 'Configuration replaced successfully',
+    const options = {
+      ...getAuthorOptions(request),
+      expectedRevision: getExpectedRevision(request),
     };
+
+    try {
+      const result = await putNode(destPath, data, options);
+
+      if (result.revision) {
+        reply.header('ETag', `"${result.revision}"`);
+      }
+
+      return {
+        path: destPath,
+        data: result.data,
+        revision: result.revision,
+        message: 'Configuration replaced successfully',
+      };
+    } catch (err) {
+      if (err instanceof ConflictError) {
+        return reply.code(409).send({
+          error: 'Conflict',
+          message: err.message,
+          currentRevision: err.currentRevision,
+        });
+      }
+      throw err;
+    }
   });
 
   /**

@@ -235,6 +235,7 @@ export default async function streamRoutes(fastify) {
           path: event.path,
           data: event.data,
           timestamp: event.timestamp,
+          revision: event.revision || null,
         };
 
         if (socket.readyState === socket.OPEN) {

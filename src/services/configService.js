@@ -41,7 +41,7 @@ function getCache() {
 const CACHE_SUBTREE = 'subtree:';
 const CACHE_LIST = 'list:';
 
-function invalidateCacheForPath(path) {
+export function invalidateCacheForPath(path) {
   const c = getCache();
   if (!c) return;
 
@@ -88,6 +88,19 @@ export async function getSubtree(basePath) {
   if (c) c.set(cacheKey, result);
 
   return result;
+}
+
+export async function getNode(path) {
+  const backend = getStorage();
+  const doc = await backend.getByPath(path);
+  if (!doc) return null;
+
+  return {
+    path: doc.path,
+    data: doc.data,
+    updatedAt: doc.updatedAt,
+    revision: doc.revision || null,
+  };
 }
 
 export async function listPaths(basePath) {
@@ -139,13 +152,16 @@ export async function patchNode(path, data, options = {}) {
 
   let result;
   let operation;
+  let revision = null;
 
   if (existing) {
     result = deepMerge(existing.data, data);
-    await backend.upsert(path, result, options);
+    const upsertResult = await backend.upsert(path, result, options);
+    revision = upsertResult?.revision || null;
     operation = 'update';
   } else {
-    await backend.upsert(path, data, options);
+    const upsertResult = await backend.upsert(path, data, options);
+    revision = upsertResult?.revision || null;
     result = data;
     operation = 'insert';
   }
@@ -154,25 +170,26 @@ export async function patchNode(path, data, options = {}) {
   invalidateCacheForPath(path);
 
   // Publish notification
-  await notifyChange(operation, path, result);
+  await notifyChange(operation, path, result, revision);
 
-  return result;
+  return { data: result, revision };
 }
 
 export async function putNode(path, data, options = {}) {
   const backend = getStorage();
   const existing = await backend.getByPath(path);
 
-  await backend.upsert(path, data, options);
+  const upsertResult = await backend.upsert(path, data, options);
+  const revision = upsertResult?.revision || null;
 
   // Invalidate cache for affected paths
   invalidateCacheForPath(path);
 
   // Publish notification
   const operation = existing ? 'update' : 'insert';
-  await notifyChange(operation, path, data);
+  await notifyChange(operation, path, data, revision);
 
-  return data;
+  return { data, revision };
 }
 
 export async function deleteSubtree(basePath, options = {}) {

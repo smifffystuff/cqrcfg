@@ -5,6 +5,14 @@ const AUTH_PATTERN = window.__CQRCFG_AUTH_PATTERN__ || '';
 // Check if proxy auth mode is enabled
 export const isProxyAuthMode = !!AUTH_HEADER;
 
+export class ConflictError extends Error {
+  constructor(message, currentRevision) {
+    super(message);
+    this.name = 'ConflictError';
+    this.currentRevision = currentRevision;
+  }
+}
+
 function getAuthHeaders(token) {
   // In proxy auth mode, don't send Authorization header (proxy handles it)
   if (isProxyAuthMode) {
@@ -14,11 +22,18 @@ function getAuthHeaders(token) {
 }
 
 async function handleResponse(response) {
+  if (response.status === 409) {
+    const error = await response.json().catch(() => ({}));
+    throw new ConflictError(
+      error.message || 'Configuration was modified by another user',
+      error.currentRevision
+    );
+  }
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: response.statusText }));
     throw new Error(error.message || `HTTP ${response.status}`);
   }
-  return response.json();
+  return response;
 }
 
 export const api = {
@@ -28,7 +43,8 @@ export const api = {
       headers: getAuthHeaders(token),
       credentials: isProxyAuthMode ? 'include' : 'same-origin',
     });
-    return handleResponse(response);
+    const res = await handleResponse(response);
+    return res.json();
   },
 
   async searchPaths(pattern, token) {
@@ -38,7 +54,8 @@ export const api = {
       headers: getAuthHeaders(token),
       credentials: isProxyAuthMode ? 'include' : 'same-origin',
     });
-    return handleResponse(response);
+    const res = await handleResponse(response);
+    return res.json();
   },
 
   async getConfig(path, token) {
@@ -47,35 +64,51 @@ export const api = {
       headers: getAuthHeaders(token),
       credentials: isProxyAuthMode ? 'include' : 'same-origin',
     });
-    return handleResponse(response);
+    const res = await handleResponse(response);
+    const data = await res.json();
+    const etag = response.headers.get('etag');
+    const revision = etag ? etag.replace(/^"(.*)"$/, '$1') : null;
+    return { data, revision };
   },
 
-  async putConfig(path, data, token) {
+  async putConfig(path, data, token, revision) {
     const url = `${API_BASE}${path}`;
+    const headers = {
+      ...getAuthHeaders(token),
+      'Content-Type': 'application/json',
+    };
+    if (revision) {
+      headers['If-Match'] = `"${revision}"`;
+    }
     const response = await fetch(url, {
       method: 'PUT',
-      headers: {
-        ...getAuthHeaders(token),
-        'Content-Type': 'application/json',
-      },
+      headers,
       credentials: isProxyAuthMode ? 'include' : 'same-origin',
       body: JSON.stringify(data),
     });
-    return handleResponse(response);
+    const res = await handleResponse(response);
+    const result = await res.json();
+    return result;
   },
 
-  async patchConfig(path, data, token) {
+  async patchConfig(path, data, token, revision) {
     const url = `${API_BASE}${path}`;
+    const headers = {
+      ...getAuthHeaders(token),
+      'Content-Type': 'application/json',
+    };
+    if (revision) {
+      headers['If-Match'] = `"${revision}"`;
+    }
     const response = await fetch(url, {
       method: 'PATCH',
-      headers: {
-        ...getAuthHeaders(token),
-        'Content-Type': 'application/json',
-      },
+      headers,
       credentials: isProxyAuthMode ? 'include' : 'same-origin',
       body: JSON.stringify(data),
     });
-    return handleResponse(response);
+    const res = await handleResponse(response);
+    const result = await res.json();
+    return result;
   },
 
   async deleteConfig(path, token) {
@@ -85,7 +118,8 @@ export const api = {
       headers: getAuthHeaders(token),
       credentials: isProxyAuthMode ? 'include' : 'same-origin',
     });
-    return handleResponse(response);
+    const res = await handleResponse(response);
+    return res.json();
   },
 
   // Fetch token from configured header (for proxy auth mode)
@@ -113,5 +147,14 @@ export const api = {
     } catch {
       return null;
     }
+  },
+
+  getStreamUrl(path, token) {
+    const base = API_BASE.replace(/\/api\/?$/, '').replace(/^\./, '');
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsBase = base.startsWith('http')
+      ? base.replace(/^http/, 'ws')
+      : `${wsProtocol}//${window.location.host}${base}`;
+    return `${wsBase}/stream${path}?token=${encodeURIComponent(token)}`;
   },
 };

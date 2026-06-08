@@ -631,3 +631,110 @@ button.btn-delete:hover {
   cursor: not-allowed;
   background: var(--bg-primary);
 }
+
+/* Toast notification */
+.toast-notification {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: toast-in 0.3s ease;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Remote change / conflict banners */
+.remote-change-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.625rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  gap: 0.75rem;
+}
+
+.remote-change-banner.warning-banner {
+  background: #fef3cd;
+  border: 1px solid #ffc107;
+  color: #856404;
+}
+
+.remote-change-banner.conflict-banner {
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+}
+
+.remote-change-banner button {
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.remote-change-banner.warning-banner button {
+  background: #ffc107;
+  border: 1px solid #e0a800;
+  color: #856404;
+}
+
+.remote-change-banner.conflict-banner button {
+  background: #fff;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+}
+
+.remote-change-banner .btn-force {
+  background: #dc3545;
+  border-color: #dc3545;
+  color: white;
+}
+
+.conflict-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Dark mode overrides for banners */
+[data-theme="dark"] .remote-change-banner.warning-banner {
+  background: #332b00;
+  border-color: #665500;
+  color: #ffda6a;
+}
+
+[data-theme="dark"] .remote-change-banner.warning-banner button {
+  background: #665500;
+  border-color: #997a00;
+  color: #ffda6a;
+}
+
+[data-theme="dark"] .remote-change-banner.conflict-banner {
+  background: #2c0b0e;
+  border-color: #5c1a1f;
+  color: #f5c2c7;
+}
+
+[data-theme="dark"] .remote-change-banner.conflict-banner button {
+  background: #5c1a1f;
+  border-color: #842029;
+  color: #f5c2c7;
+}
+
+[data-theme="dark"] .remote-change-banner .btn-force {
+  background: #dc3545;
+  border-color: #dc3545;
+  color: white;
+}

@@ -123,6 +123,15 @@ export function matchesFilter(obj, filters) {
   return true;
 }
 
+export class ConflictError extends Error {
+  constructor(path, currentRevision) {
+    super(`Conflict: path "${path}" has been modified (current revision: ${currentRevision})`);
+    this.name = 'ConflictError';
+    this.path = path;
+    this.currentRevision = currentRevision;
+  }
+}
+
 export class StorageInterface {
   async connect() {
     throw new Error('Not implemented');

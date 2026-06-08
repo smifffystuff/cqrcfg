@@ -3,7 +3,8 @@ import { promisify } from 'util';
 import { mkdir, readFile, writeFile, rm, readdir, stat } from 'fs/promises';
 import { join, dirname } from 'path';
 import { createCipheriv, createDecipheriv, pbkdf2Sync, randomBytes } from 'crypto';
-import { StorageInterface, globToRegex, matchesFilter } from './interface.js';
+import { StorageInterface, ConflictError, globToRegex, matchesFilter } from './interface.js';
+import { withFileLock } from './flock.js';
 import { logger } from '../logger.js';
 
 const execFileAsync = promisify(execFile);
@@ -26,9 +27,12 @@ export class GitStorage extends StorageInterface {
     this.encryptionSalt = encryption.salt || '';
     this.encryptionPassword = encryption.password || '';
 
-    // Mutex for git operations
+    // Local promise queue prevents self-contention within this process
     this.operationQueue = Promise.resolve();
     this.lastPull = 0;
+
+    // Inter-process lock path (sibling to the repo, not inside .git)
+    this.lockPath = this.localPath + '.lock';
   }
 
   extractAuthorFromClaims(claims) {
@@ -187,9 +191,11 @@ export class GitStorage extends StorageInterface {
     }
   }
 
-  // Serialize git operations to avoid conflicts
+  // Serialize operations: local promise queue + inter-process file lock
   async _withLock(fn) {
-    const ticket = this.operationQueue.then(() => fn()).catch(err => { throw err; });
+    const ticket = this.operationQueue.then(() =>
+      withFileLock(this.lockPath, fn)
+    ).catch(err => { throw err; });
     this.operationQueue = ticket.catch(() => {});
     return ticket;
   }
@@ -257,6 +263,21 @@ export class GitStorage extends StorageInterface {
     const relative = filePath.replace(this.localPath, '').replace(/^\//, '');
     if (!relative.endsWith('.json')) return null;
     return '/' + relative.slice(0, -5);
+  }
+
+  _fileRelativePath(configPath) {
+    const relativePath = configPath.startsWith('/') ? configPath.slice(1) : configPath;
+    return relativePath + '.json';
+  }
+
+  async _getRevision(configPath) {
+    const relFile = this._fileRelativePath(configPath);
+    try {
+      const hash = await this._git(['log', '-1', '--format=%H', '--', relFile]);
+      return hash || null;
+    } catch {
+      return null;
+    }
   }
 
   async _readJsonFile(filePath) {
@@ -344,10 +365,13 @@ export class GitStorage extends StorageInterface {
 
       if (!content) return null;
 
+      const revision = await this._getRevision(path);
+
       return {
         path,
         data: content.data,
         updatedAt: new Date(content.updatedAt),
+        revision,
       };
     });
   }
@@ -365,6 +389,14 @@ export class GitStorage extends StorageInterface {
     return this._withLock(async () => {
       await this._pullIfNeeded();
 
+      // Optimistic locking: check expected revision if provided
+      if (options.expectedRevision) {
+        const currentRevision = await this._getRevision(path);
+        if (currentRevision && currentRevision !== options.expectedRevision) {
+          throw new ConflictError(path, currentRevision);
+        }
+      }
+
       const filePath = this._pathToFile(path);
       await this._writeJsonFile(filePath, {
         data,
@@ -372,6 +404,10 @@ export class GitStorage extends StorageInterface {
       });
 
       await this._commitAndPush(`Update ${path}`, options.author);
+
+      // Return the new revision after commit
+      const newRevision = await this._getRevision(path);
+      return { revision: newRevision };
     });
   }
 

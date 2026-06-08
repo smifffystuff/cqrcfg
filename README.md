@@ -510,6 +510,50 @@ GET /health
 
 Returns service status (no authentication required).
 
+### Concurrency Control (ETag / If-Match)
+
+When using the **git storage backend**, the API supports optimistic locking via standard HTTP ETag headers. This prevents lost updates when multiple users or instances modify the same configuration.
+
+**On GET responses**, the server returns an `ETag` header containing the revision hash of the configuration:
+```
+ETag: "a1b2c3d4e5f6..."
+```
+
+**On PUT/PATCH/POST requests**, include the `If-Match` header with the ETag value received from your last read:
+```
+If-Match: "a1b2c3d4e5f6..."
+```
+
+If the configuration has been modified since you last read it, the server rejects the write with a `409 Conflict`:
+```json
+{
+  "error": "Conflict",
+  "message": "Conflict: path \"/config/app1/db\" has been modified (current revision: f7e9f09...)",
+  "currentRevision": "f7e9f09..."
+}
+```
+
+**Behaviour:**
+- `If-Match` is optional — omitting it gives last-write-wins behaviour (no conflict check)
+- Write responses include a `revision` field with the new revision after the write succeeds
+- The `ETag` header is only returned when using the git backend; other backends return responses without it
+- The UI automatically tracks revisions and sends `If-Match` on save
+
+**Example:**
+```bash
+# Read config and capture the ETag
+ETAG=$(curl -s -D - -H "Authorization: Bearer $TOKEN" \
+  http://localhost:3000/config/app1/db | grep -i etag | tr -d '\r' | awk '{print $2}')
+
+# Update with concurrency check
+curl -X PUT \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "If-Match: $ETAG" \
+  -d '{"host": "new-host", "port": 5432}' \
+  http://localhost:3000/config/app1/db
+```
+
 ### Get Config Subtree
 
 ```
@@ -723,8 +767,11 @@ ws.onmessage = (event) => {
 **Events:**
 ```json
 {"type": "connected", "path": "/config/app1", "user": "user123"}
-{"type": "change", "operation": "update", "path": "/config/app1/db", "data": {...}}
+{"type": "change", "operation": "update", "path": "/config/app1/db", "data": {...}, "revision": "a1b2c3d...", "timestamp": "2025-06-05T12:00:00.000Z"}
+{"type": "change", "operation": "delete", "path": "/config/app1/db", "revision": null, "timestamp": "2025-06-05T12:01:00.000Z"}
 ```
+
+The `revision` field contains the new git commit hash after the change (git backend only; `null` for other backends or deletes). Clients can use this to update their local ETag without refetching.
 
 ## JWT Token Format
 
@@ -781,13 +828,15 @@ src/
 │   └── stream.js         # WebSocket subscriptions
 ├── services/
 │   ├── configService.js  # Config operations (LRU cache, notifications)
-│   └── notificationService.js  # Pub/sub notifications
+│   ├── notificationService.js  # Pub/sub notifications
+│   └── cacheSync.js      # Cross-instance cache invalidation via broker
 ├── storage/
 │   ├── interface.js      # Storage interface + glob/filter utilities
+│   ├── flock.js          # Inter-process file lock (mkdir-based)
 │   ├── mongodb.js        # MongoDB implementation
 │   ├── dynamodb.js       # DynamoDB implementation
 │   ├── etcd.js           # etcd implementation
-│   └── git.js            # Git implementation (encryption, author claims)
+│   └── git.js            # Git implementation (encryption, author claims, optimistic locking)
 ├── notifications/
 │   ├── interface.js      # Notifications interface
 │   ├── websocket.js      # In-process pub/sub
@@ -825,6 +874,7 @@ All errors return JSON:
 | 401 | Unauthorized | Missing or invalid JWT |
 | 403 | Forbidden | Insufficient permissions |
 | 404 | Not Found | Config path doesn't exist |
+| 409 | Conflict | Config was modified since last read (stale `If-Match` ETag) |
 | 500 | Internal Server Error | Unexpected error |
 
 ## License

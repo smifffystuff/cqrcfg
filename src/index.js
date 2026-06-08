@@ -4,6 +4,7 @@ import { config, validateConfig } from './config.js';
 import { logger, loggerConfig } from './logger.js';
 import { initStorage, closeStorage } from './storage/index.js';
 import { initNotifications, closeNotifications } from './notifications/index.js';
+import { initCacheSync, closeCacheSync } from './services/cacheSync.js';
 import configRoutes from './routes/config.js';
 import streamRoutes from './routes/stream.js';
 
@@ -11,9 +12,10 @@ async function main() {
   // Validate configuration
   validateConfig();
 
-  // Initialize storage and notifications
+  // Initialize storage, notifications, and cross-instance cache sync
   await initStorage();
   await initNotifications();
+  await initCacheSync();
 
   // Create Fastify instance
   const fastify = Fastify({
@@ -99,6 +101,7 @@ async function main() {
     logger.info({ signal }, 'Shutting down gracefully');
 
     await fastify.close();
+    await closeCacheSync();
     await closeNotifications();
     await closeStorage();
     logger.info('Server closed - flushing logs and exiting');

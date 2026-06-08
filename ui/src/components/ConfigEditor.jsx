@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export function ConfigEditor({ path, data, onSave, onDelete, onClose, canWrite }) {
+export function ConfigEditor({ path, data, onSave, onForceSave, onDelete, onReload, onClose, onHasChanges, canWrite, remoteChange }) {
   const [editMode, setEditMode] = useState('form'); // 'form' or 'json'
   const [jsonText, setJsonText] = useState('');
   const [formData, setFormData] = useState({});
@@ -15,6 +15,10 @@ export function ConfigEditor({ path, data, onSave, onDelete, onClose, canWrite }
       setJsonError(null);
     }
   }, [data]);
+
+  useEffect(() => {
+    if (onHasChanges) onHasChanges(hasChanges);
+  }, [hasChanges, onHasChanges]);
 
   const handleJsonChange = (value) => {
     setJsonText(value);
@@ -64,6 +68,15 @@ export function ConfigEditor({ path, data, onSave, onDelete, onClose, canWrite }
       return;
     }
     onSave(path, formData);
+    setHasChanges(false);
+  };
+
+  const handleForceSave = () => {
+    if (jsonError) {
+      alert('Please fix JSON errors before saving');
+      return;
+    }
+    onForceSave(path, formData);
     setHasChanges(false);
   };
 
@@ -136,6 +149,23 @@ export function ConfigEditor({ path, data, onSave, onDelete, onClose, canWrite }
           <button onClick={onClose}>Close</button>
         </div>
       </div>
+
+      {remoteChange && !remoteChange.conflict && (
+        <div className="remote-change-banner warning-banner">
+          <span>This configuration was modified externally. Your unsaved changes may conflict.</span>
+          <button onClick={onReload}>Reload</button>
+        </div>
+      )}
+
+      {remoteChange && remoteChange.conflict && (
+        <div className="remote-change-banner conflict-banner">
+          <span>Save failed: another user modified this configuration.</span>
+          <div className="conflict-actions">
+            <button onClick={onReload}>Reload (discard my changes)</button>
+            <button onClick={handleForceSave} className="btn-force">Force save (overwrite)</button>
+          </div>
+        </div>
+      )}
 
       <div className="editor-tabs">
         <button

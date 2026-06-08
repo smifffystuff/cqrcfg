@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import './App.css';
 import { ConfigBrowser } from './components/ConfigBrowser';
 import { ConfigEditor } from './components/ConfigEditor';
 import { TokenInput } from './components/TokenInput';
 import { ThemeToggle } from './components/ThemeToggle';
-import { api, isProxyAuthMode } from './api';
+import { api, isProxyAuthMode, ConflictError } from './api';
 
 // Runtime config
 const envName = window.__CQRCFG_ENV__ || '';
@@ -54,8 +54,20 @@ function App() {
   const [paths, setPaths] = useState([]);
   const [selectedPath, setSelectedPath] = useState(null);
   const [configData, setConfigData] = useState(null);
+  const [revision, setRevision] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [remoteChange, setRemoteChange] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  const wsRef = useRef(null);
+  const selectedPathRef = useRef(null);
+  const hasChangesRef = useRef(false);
+
+  // Keep refs in sync
+  useEffect(() => {
+    selectedPathRef.current = selectedPath;
+  }, [selectedPath]);
 
   // Parse JWT payload
   const jwtPayload = useMemo(() => {
@@ -135,6 +147,75 @@ function App() {
     return hasWritePermission(permissions, selectedPath);
   }, [permissions, selectedPath]);
 
+  // WebSocket connection for live updates
+  useEffect(() => {
+    if (!token || token === '__PROXY_AUTH__') return;
+
+    const wsUrl = api.getStreamUrl('/config', token);
+    let ws;
+    let reconnectTimer;
+
+    function connect() {
+      ws = new WebSocket(wsUrl);
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type !== 'change') return;
+
+          const changedPath = msg.path;
+
+          // If the changed path affects the currently viewed path, handle it
+          if (selectedPathRef.current && changedPath === selectedPathRef.current) {
+            if (hasChangesRef.current) {
+              // User has unsaved edits — show warning, don't overwrite
+              setRemoteChange({
+                path: changedPath,
+                revision: msg.revision,
+                timestamp: msg.timestamp,
+              });
+            } else {
+              // No unsaved edits — silently refresh
+              loadConfigSilent(changedPath);
+              showToast('Configuration updated by another user');
+            }
+          }
+
+          // Refresh the path list if the change is under the current browse path
+          if (changedPath.startsWith(currentPath + '/') || changedPath === currentPath) {
+            loadPathsSilent(currentPath);
+          }
+        } catch { /* ignore malformed messages */ }
+      };
+
+      ws.onclose = () => {
+        // Reconnect after a delay
+        reconnectTimer = setTimeout(connect, 5000);
+      };
+
+      wsRef.current = ws;
+    }
+
+    connect();
+
+    return () => {
+      clearTimeout(reconnectTimer);
+      if (ws) ws.close();
+      wsRef.current = null;
+    };
+  }, [token]);
+
+  // Toast auto-dismiss
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  const showToast = (message) => {
+    setToast(message);
+  };
+
   const handleTokenChange = (newToken) => {
     setToken(newToken);
     localStorage.setItem('cqrcfg_token', newToken);
@@ -159,22 +240,43 @@ function App() {
     }
   }, [token]);
 
+  const loadPathsSilent = useCallback(async (path) => {
+    if (!token) return;
+    try {
+      const result = await api.listPaths(path, token);
+      setPaths(result.keys || []);
+    } catch { /* silent */ }
+  }, [token]);
+
   const loadConfig = useCallback(async (path) => {
     if (!token) return;
 
     setLoading(true);
     setError(null);
+    setRemoteChange(null);
 
     try {
       const result = await api.getConfig(path, token);
-      setConfigData(result);
+      setConfigData(result.data);
+      setRevision(result.revision);
       setSelectedPath(path);
     } catch (err) {
       setError(err.message);
       setConfigData(null);
+      setRevision(null);
     } finally {
       setLoading(false);
     }
+  }, [token]);
+
+  const loadConfigSilent = useCallback(async (path) => {
+    if (!token) return;
+    try {
+      const result = await api.getConfig(path, token);
+      setConfigData(result.data);
+      setRevision(result.revision);
+      setRemoteChange(null);
+    } catch { /* silent */ }
   }, [token]);
 
   const saveConfig = async (path, data) => {
@@ -184,13 +286,51 @@ function App() {
     setError(null);
 
     try {
-      await api.putConfig(path, data, token);
+      const result = await api.putConfig(path, data, token, revision);
+      setRevision(result.revision || null);
+      setRemoteChange(null);
+      await loadConfig(path);
+      await loadPaths(currentPath);
+    } catch (err) {
+      if (err instanceof ConflictError) {
+        setError('Save failed: this configuration was modified by another user. Reload to see the latest version, or force save to overwrite.');
+        setRemoteChange({
+          path,
+          revision: err.currentRevision,
+          conflict: true,
+        });
+      } else {
+        setError(err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const forceSaveConfig = async (path, data) => {
+    if (!token) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Save without revision check (no If-Match header)
+      const result = await api.putConfig(path, data, token, null);
+      setRevision(result.revision || null);
+      setRemoteChange(null);
       await loadConfig(path);
       await loadPaths(currentPath);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const reloadConfig = async () => {
+    if (selectedPath) {
+      setRemoteChange(null);
+      await loadConfig(selectedPath);
     }
   };
 
@@ -205,6 +345,8 @@ function App() {
       await api.deleteConfig(path, token);
       setSelectedPath(null);
       setConfigData(null);
+      setRevision(null);
+      setRemoteChange(null);
       await loadPaths(currentPath);
     } catch (err) {
       setError(err.message);
@@ -220,7 +362,7 @@ function App() {
     setError(null);
 
     try {
-      await api.putConfig(path, data, token);
+      await api.putConfig(path, data, token, null);
       await loadPaths(currentPath);
       await loadConfig(path);
     } catch (err) {
@@ -229,6 +371,10 @@ function App() {
       setLoading(false);
     }
   };
+
+  const handleHasChanges = useCallback((val) => {
+    hasChangesRef.current = val;
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -278,6 +424,12 @@ function App() {
         </div>
       )}
 
+      {toast && (
+        <div className="toast-notification">
+          {toast}
+        </div>
+      )}
+
       {loading && <div className="loading-bar" />}
 
       <main className="app-main">
@@ -301,12 +453,18 @@ function App() {
               path={selectedPath}
               data={configData}
               onSave={saveConfig}
+              onForceSave={forceSaveConfig}
               onDelete={deleteConfig}
+              onReload={reloadConfig}
               onClose={() => {
                 setSelectedPath(null);
                 setConfigData(null);
+                setRevision(null);
+                setRemoteChange(null);
               }}
+              onHasChanges={handleHasChanges}
               canWrite={canWriteSelectedPath}
+              remoteChange={remoteChange}
             />
           ) : (
             <div className="placeholder">
