@@ -1,5 +1,11 @@
 # Releases
 
+## v1.0.0-build.20 — 2026-06-08
+
+- Remove WebSocket-based client notifications (stream route, UI socket code, toast/warning UI)
+- Add @dj-strmproc/node-libs dependency for generic log transport
+- Retain server-side notification broker for cross-instance cache invalidation only
+
 ## v1.0.0-build.19 — 2026-06-08
 
 - Add @fastify/websocket dependency and register plugin in UI server (required for WebSocket proxy to handle upgrades)
