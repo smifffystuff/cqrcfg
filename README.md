@@ -389,6 +389,7 @@ The service uses [Pino](https://getpino.io) for structured JSON logging. By defa
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `LOG_LEVEL` | `info` | Log level: `trace`, `debug`, `info`, `warn`, `error`, `fatal` |
+| `HEALTH_LOG_LEVEL` | `warn` | Log level for the `/health` endpoint (set to `silent` to suppress entirely) |
 | `LOG_TRANSPORT` | (none) | Log transport target (see below) |
 | `LOG_TRANSPORT_OPTIONS` | `{}` | JSON string of options passed to the transport |
 

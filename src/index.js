@@ -25,7 +25,7 @@ async function main() {
   await fastify.register(websocket);
 
   // Health check endpoint (no auth required)
-  fastify.get('/health', { logLevel: 'warn' }, async () => {
+  fastify.get('/health', { logLevel: config.healthLogLevel }, async () => {
     return {
       status: 'ok',
       storage: config.storage.type,

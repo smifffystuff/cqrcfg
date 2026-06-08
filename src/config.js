@@ -87,6 +87,7 @@ export const config = {
     ttl: parseInt(process.env.CACHE_TTL, 10) || 120,
   },
   logLevel: process.env.LOG_LEVEL || 'info',
+  healthLogLevel: process.env.HEALTH_LOG_LEVEL || 'warn',
 };
 
 export function validateConfig() {
