@@ -1,12 +1,10 @@
 import Fastify from 'fastify';
-import websocket from '@fastify/websocket';
 import { config, validateConfig } from './config.js';
 import { logger, loggerConfig } from './logger.js';
 import { initStorage, closeStorage } from './storage/index.js';
 import { initNotifications, closeNotifications } from './notifications/index.js';
 import { initCacheSync, closeCacheSync } from './services/cacheSync.js';
 import configRoutes from './routes/config.js';
-import streamRoutes from './routes/stream.js';
 
 async function main() {
   // Validate configuration
@@ -23,9 +21,6 @@ async function main() {
     bodyLimit: 1048576, // 1MB
   });
 
-  // Register WebSocket plugin
-  await fastify.register(websocket);
-
   // Health check endpoint (no auth required)
   fastify.get('/health', { logLevel: 'warn' }, async () => {
     return {
@@ -38,9 +33,6 @@ async function main() {
 
   // Mount config routes
   await fastify.register(configRoutes, { prefix: '/config' });
-
-  // Mount WebSocket stream routes
-  await fastify.register(streamRoutes);
 
   // Error handler
   fastify.setErrorHandler((error, request, reply) => {
@@ -89,7 +81,6 @@ async function main() {
     '  PUT    /config/*      - Replace config (overwrites all values)',
     '  DELETE /config/*      - Delete config subtree',
     '  (POST/PUT support ?from=... to copy from another path)',
-    '  WS     /stream/*      - Subscribe to changes',
   ].join('\n'), 'Available endpoints');
 
   // Graceful shutdown

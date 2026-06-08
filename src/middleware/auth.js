@@ -292,7 +292,7 @@ async function extractClaimsFromHeaders(request, keySet) {
 
 /**
  * Verify a JWT token and return user info (sub + permissions).
- * Used by both the HTTP auth hook and WebSocket stream routes.
+ * Verify a JWT token and return user info (sub + permissions).
  */
 export async function verifyToken(token, headers) {
   const keySet = await getJWKS();

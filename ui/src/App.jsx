@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import './App.css';
 import { ConfigBrowser } from './components/ConfigBrowser';
 import { ConfigEditor } from './components/ConfigEditor';
@@ -58,16 +58,6 @@ function App() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [remoteChange, setRemoteChange] = useState(null);
-  const [toast, setToast] = useState(null);
-
-  const wsRef = useRef(null);
-  const selectedPathRef = useRef(null);
-  const hasChangesRef = useRef(false);
-
-  // Keep refs in sync
-  useEffect(() => {
-    selectedPathRef.current = selectedPath;
-  }, [selectedPath]);
 
   // Parse JWT payload
   const jwtPayload = useMemo(() => {
@@ -147,91 +137,6 @@ function App() {
     return hasWritePermission(permissions, selectedPath);
   }, [permissions, selectedPath]);
 
-  // WebSocket connection for live updates
-  useEffect(() => {
-    if (!token) return;
-
-    const wsUrl = api.getStreamUrl('/config', token);
-    let ws;
-    let reconnectTimer;
-
-    function connect() {
-      console.debug('[SOCKET] Connecting to %s', wsUrl);
-      ws = new WebSocket(wsUrl);
-
-      ws.onopen = () => {
-        console.debug('[SOCKET] Connection established');
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          console.debug('[SOCKET] Received message type=%s', msg.type, msg);
-
-          if (msg.type !== 'change') return;
-
-          const changedPath = msg.path;
-
-          // If the changed path affects the currently viewed path, handle it
-          if (selectedPathRef.current && changedPath === selectedPathRef.current) {
-            if (hasChangesRef.current) {
-              // User has unsaved edits — show warning, don't overwrite
-              console.debug('[SOCKET] Remote change conflicts with local edits path=%s', changedPath);
-              setRemoteChange({
-                path: changedPath,
-                revision: msg.revision,
-                timestamp: msg.timestamp,
-              });
-            } else {
-              // No unsaved edits — silently refresh
-              console.debug('[SOCKET] Auto-refreshing path=%s (no local changes)', changedPath);
-              loadConfigSilent(changedPath);
-              showToast('Configuration updated by another user');
-            }
-          }
-
-          // Refresh the path list if the change is under the current browse path
-          if (changedPath.startsWith(currentPath + '/') || changedPath === currentPath) {
-            console.debug('[SOCKET] Refreshing path list for currentPath=%s', currentPath);
-            loadPathsSilent(currentPath);
-          }
-        } catch { /* ignore malformed messages */ }
-      };
-
-      ws.onclose = (event) => {
-        console.debug('[SOCKET] Connection closed code=%d reason=%s', event.code, event.reason);
-        // Reconnect after a delay
-        reconnectTimer = setTimeout(connect, 5000);
-      };
-
-      ws.onerror = (event) => {
-        console.debug('[SOCKET] Connection error', event);
-      };
-
-      wsRef.current = ws;
-    }
-
-    connect();
-
-    return () => {
-      console.debug('[SOCKET] Cleaning up connection');
-      clearTimeout(reconnectTimer);
-      if (ws) ws.close();
-      wsRef.current = null;
-    };
-  }, [token]);
-
-  // Toast auto-dismiss
-  useEffect(() => {
-    if (!toast) return;
-    const timer = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(timer);
-  }, [toast]);
-
-  const showToast = (message) => {
-    setToast(message);
-  };
-
   const handleTokenChange = (newToken) => {
     setToken(newToken);
     localStorage.setItem('cqrcfg_token', newToken);
@@ -256,14 +161,6 @@ function App() {
     }
   }, [token]);
 
-  const loadPathsSilent = useCallback(async (path) => {
-    if (!token) return;
-    try {
-      const result = await api.listPaths(path, token);
-      setPaths(result.keys || []);
-    } catch { /* silent */ }
-  }, [token]);
-
   const loadConfig = useCallback(async (path) => {
     if (!token) return;
 
@@ -283,16 +180,6 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
-
-  const loadConfigSilent = useCallback(async (path) => {
-    if (!token) return;
-    try {
-      const result = await api.getConfig(path, token);
-      setConfigData(result.data);
-      setRevision(result.revision);
-      setRemoteChange(null);
-    } catch { /* silent */ }
   }, [token]);
 
   const saveConfig = async (path, data) => {
@@ -388,10 +275,6 @@ function App() {
     }
   };
 
-  const handleHasChanges = useCallback((val) => {
-    hasChangesRef.current = val;
-  }, []);
-
   useEffect(() => {
     if (token) {
       loadPaths(currentPath);
@@ -440,12 +323,6 @@ function App() {
         </div>
       )}
 
-      {toast && (
-        <div className="toast-notification">
-          {toast}
-        </div>
-      )}
-
       {loading && <div className="loading-bar" />}
 
       <main className="app-main">
@@ -478,7 +355,6 @@ function App() {
                 setRevision(null);
                 setRemoteChange(null);
               }}
-              onHasChanges={handleHasChanges}
               canWrite={canWriteSelectedPath}
               remoteChange={remoteChange}
             />

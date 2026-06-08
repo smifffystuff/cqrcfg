@@ -1,7 +1,6 @@
 import Fastify from 'fastify';
 import fastifyStatic from '@fastify/static';
 import fastifyHttpProxy from '@fastify/http-proxy';
-import fastifyWebsocket from '@fastify/websocket';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -51,23 +50,11 @@ fastify.get('/config.js', async (request, reply) => {
     .send(runtimeConfig);
 });
 
-// WebSocket support (required for @fastify/http-proxy websocket: true)
-await fastify.register(fastifyWebsocket);
-
 // API proxy
 await fastify.register(fastifyHttpProxy, {
   upstream: API_URL,
   prefix: '/api',
   rewritePrefix: '',
-  websocket: true,
-});
-
-// WebSocket proxy
-await fastify.register(fastifyHttpProxy, {
-  upstream: API_URL,
-  prefix: '/ws',
-  rewritePrefix: '',
-  websocket: true,
 });
 
 // Serve static files
@@ -79,7 +66,7 @@ await fastify.register(fastifyStatic, {
 // SPA fallback - serve index.html for unmatched routes
 fastify.setNotFoundHandler(async (request, reply) => {
   console.log('[cqrcfg-ui] 404 fallback hit for:', request.url);
-  if (request.url.startsWith('/api/') || request.url.startsWith('/ws/')) {
+  if (request.url.startsWith('/api/')) {
     reply.code(404).send({ error: 'Not Found' });
     return;
   }

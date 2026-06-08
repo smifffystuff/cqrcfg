@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export function ConfigEditor({ path, data, onSave, onForceSave, onDelete, onReload, onClose, onHasChanges, canWrite, remoteChange }) {
+export function ConfigEditor({ path, data, onSave, onForceSave, onDelete, onReload, onClose, canWrite, remoteChange }) {
   const [editMode, setEditMode] = useState('form'); // 'form' or 'json'
   const [jsonText, setJsonText] = useState('');
   const [formData, setFormData] = useState({});
@@ -15,10 +15,6 @@ export function ConfigEditor({ path, data, onSave, onForceSave, onDelete, onRelo
       setJsonError(null);
     }
   }, [data]);
-
-  useEffect(() => {
-    if (onHasChanges) onHasChanges(hasChanges);
-  }, [hasChanges, onHasChanges]);
 
   const handleJsonChange = (value) => {
     setJsonText(value);
@@ -149,13 +145,6 @@ export function ConfigEditor({ path, data, onSave, onForceSave, onDelete, onRelo
           <button onClick={onClose}>Close</button>
         </div>
       </div>
-
-      {remoteChange && !remoteChange.conflict && (
-        <div className="remote-change-banner warning-banner">
-          <span>This configuration was modified externally. Your unsaved changes may conflict.</span>
-          <button onClick={onReload}>Reload</button>
-        </div>
-      )}
 
       {remoteChange && remoteChange.conflict && (
         <div className="remote-change-banner conflict-banner">
