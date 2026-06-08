@@ -1,5 +1,9 @@
 # Releases
 
+## v1.0.0-build.16 — 2026-06-08
+
+- Enable WebSocket connections in proxy auth mode (use configured auth header instead of query param)
+
 ## v1.0.0-build.15 — 2026-06-08
 
 - Dummy Dockerfile change (test release)
