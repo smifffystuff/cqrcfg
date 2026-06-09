@@ -1,5 +1,9 @@
 # Releases
 
+## v1.0.0-build.21 — 2026-06-09
+
+- Enhance cache sync and remove file locking
+
 ## v1.0.0-build.20 — 2026-06-08
 
 - Remove WebSocket-based client notifications (stream route, UI socket code, toast/warning UI)
