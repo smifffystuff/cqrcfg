@@ -326,6 +326,7 @@ In proxy auth mode:
 |----------|---------|-------------|
 | `PORT` | `3000` | Server port |
 | `HOST` | `0.0.0.0` | Server host |
+| `SHUTDOWN_DELAY` | `0` | Delay in ms before `process.exit` after graceful shutdown (useful for flushing async log transports) |
 | `AUTH_TOKEN_HEADER` | `authorization` | Header name to read the JWT from |
 | `AUTH_BEARER_PREFIX` | `true` | Expect `Bearer ` prefix on the token; set to `false` to read the raw JWT directly |
 | `OIDC_JWKS_URIS` | (optional) | Comma-separated direct JWKS endpoint URLs |

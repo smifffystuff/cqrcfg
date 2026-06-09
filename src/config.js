@@ -88,6 +88,7 @@ export const config = {
   },
   logLevel: process.env.LOG_LEVEL || 'info',
   healthLogLevel: process.env.HEALTH_LOG_LEVEL || 'warn',
+  shutdownDelay: parseInt(process.env.SHUTDOWN_DELAY, 10) || 0,
 };
 
 export function validateConfig() {
