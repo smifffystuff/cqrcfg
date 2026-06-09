@@ -829,10 +829,9 @@ src/
 ├── services/
 │   ├── configService.js  # Config operations (LRU cache, notifications)
 │   ├── notificationService.js  # Pub/sub notifications
-│   └── cacheSync.js      # Cross-instance cache invalidation via broker
+│   └── cacheSync.js      # Cross-instance cache invalidation and storage sync via broker
 ├── storage/
 │   ├── interface.js      # Storage interface + glob/filter utilities
-│   ├── flock.js          # Inter-process file lock (mkdir-based)
 │   ├── mongodb.js        # MongoDB implementation
 │   ├── dynamodb.js       # DynamoDB implementation
 │   ├── etcd.js           # etcd implementation

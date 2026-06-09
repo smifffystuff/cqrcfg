@@ -4,7 +4,6 @@ import { mkdir, readFile, writeFile, rm, readdir, stat } from 'fs/promises';
 import { join, dirname } from 'path';
 import { createCipheriv, createDecipheriv, pbkdf2Sync, randomBytes } from 'crypto';
 import { StorageInterface, ConflictError, globToRegex, matchesFilter } from './interface.js';
-import { withFileLock } from './flock.js';
 import { logger } from '../logger.js';
 
 const execFileAsync = promisify(execFile);
@@ -27,12 +26,8 @@ export class GitStorage extends StorageInterface {
     this.encryptionSalt = encryption.salt || '';
     this.encryptionPassword = encryption.password || '';
 
-    // Local promise queue prevents self-contention within this process
     this.operationQueue = Promise.resolve();
     this.lastPull = 0;
-
-    // Inter-process lock path (sibling to the repo, not inside .git)
-    this.lockPath = this.localPath + '.lock';
   }
 
   extractAuthorFromClaims(claims) {
@@ -191,13 +186,30 @@ export class GitStorage extends StorageInterface {
     }
   }
 
-  // Serialize operations: local promise queue + inter-process file lock
   async _withLock(fn) {
-    const ticket = this.operationQueue.then(() =>
-      withFileLock(this.lockPath, fn)
-    ).catch(err => { throw err; });
+    const ticket = this.operationQueue.then(() => fn()).catch(err => { throw err; });
     this.operationQueue = ticket.catch(() => {});
     return ticket;
+  }
+
+  async sync() {
+    if (!this._hasRemote()) return;
+
+    await this._withLock(async () => {
+      try {
+        await this._git(['fetch', 'origin', this.branch]);
+        await this._git(['rebase', `origin/${this.branch}`]);
+        this.lastPull = Date.now();
+        logger.debug('Git sync: rebased onto remote');
+      } catch (err) {
+        logger.error({ err: err.message }, 'Git sync rebase failed, resetting to remote');
+        try {
+          await this._git(['rebase', '--abort']);
+        } catch { /* no rebase in progress */ }
+        await this._git(['reset', '--hard', `origin/${this.branch}`]);
+        this.lastPull = Date.now();
+      }
+    });
   }
 
   async _pullIfNeeded() {

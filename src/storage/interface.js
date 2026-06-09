@@ -141,6 +141,10 @@ export class StorageInterface {
     throw new Error('Not implemented');
   }
 
+  async sync() {
+    // No-op by default — backends that use local replicas (e.g. git) override this
+  }
+
   async getByPrefix(pathPrefix) {
     throw new Error('Not implemented');
   }
