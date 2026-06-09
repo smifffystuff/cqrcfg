@@ -13,6 +13,7 @@ import {
   ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { StorageInterface, globToRegex, matchesFilter } from './interface.js';
+import { logger } from '../logger.js';
 
 export class DynamoDBStorage extends StorageInterface {
   constructor(options) {
@@ -41,7 +42,7 @@ export class DynamoDBStorage extends StorageInterface {
     });
 
     await this._ensureTable();
-    console.log(`Connected to DynamoDB table: ${this.tableName}`);
+    logger.info({ tableName: this.tableName }, 'Connected to DynamoDB');
   }
 
   async _ensureTable() {
@@ -74,7 +75,7 @@ export class DynamoDBStorage extends StorageInterface {
           active = desc.Table.TableStatus === 'ACTIVE';
         }
 
-        console.log(`Created DynamoDB table: ${this.tableName}`);
+        logger.info({ tableName: this.tableName }, 'Created DynamoDB table');
       } else {
         throw error;
       }
@@ -86,7 +87,7 @@ export class DynamoDBStorage extends StorageInterface {
       this.client.destroy();
       this.client = null;
       this.docClient = null;
-      console.log('Disconnected from DynamoDB');
+      logger.info('Disconnected from DynamoDB');
     }
   }
 

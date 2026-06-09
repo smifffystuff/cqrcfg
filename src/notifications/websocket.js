@@ -1,4 +1,5 @@
 import { NotificationsInterface } from './interface.js';
+import { logger } from '../logger.js';
 
 /**
  * WebSocket notifications - manages in-process subscriptions for WebSocket clients.
@@ -11,12 +12,12 @@ export class WebSocketNotifications extends NotificationsInterface {
   }
 
   async connect() {
-    console.log('WebSocket notifications initialized');
+    logger.info('WebSocket notifications initialized');
   }
 
   async close() {
     this.subscriptions.clear();
-    console.log('WebSocket notifications closed');
+    logger.info('WebSocket notifications closed');
   }
 
   async publish(path, event) {
@@ -27,7 +28,7 @@ export class WebSocketNotifications extends NotificationsInterface {
           try {
             callback(event);
           } catch (error) {
-            console.error('Error in subscription callback:', error);
+            logger.error(error, 'Error in subscription callback');
           }
         }
       }

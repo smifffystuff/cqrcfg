@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile, rm, readdir, stat } from 'fs/promises';
 import { join, dirname } from 'path';
 import { createCipheriv, createDecipheriv, pbkdf2Sync, randomBytes } from 'crypto';
 import { StorageInterface, globToRegex, matchesFilter } from './interface.js';
+import { logger } from '../logger.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -17,6 +18,8 @@ export class GitStorage extends StorageInterface {
     this.pullInterval = options.pullInterval || 30000; // 30 seconds default
     this.userName = options.userName || 'cqrcfg';
     this.userEmail = options.userEmail || 'cqrcfg@localhost';
+    this.commitNameClaim = options.commitNameClaim || '';
+    this.commitEmailClaim = options.commitEmailClaim || '';
 
     // Encryption settings (optional)
     const encryption = options.encryption || {};
@@ -26,6 +29,31 @@ export class GitStorage extends StorageInterface {
     // Mutex for git operations
     this.operationQueue = Promise.resolve();
     this.lastPull = 0;
+  }
+
+  extractAuthorFromClaims(claims) {
+    if (!claims || !this.commitNameClaim || !this.commitEmailClaim) return null;
+
+    const name = this._getNestedValue(claims, this.commitNameClaim);
+    const email = this._getNestedValue(claims, this.commitEmailClaim);
+    if (!name || !email) return null;
+
+    return { name, email };
+  }
+
+  _getNestedValue(obj, path) {
+    const parts = path.split('.');
+    let current = obj;
+    for (const part of parts) {
+      if (current === null || current === undefined) return undefined;
+      current = current[part];
+    }
+    return current;
+  }
+
+  _resolveAuthor(author) {
+    if (author) return `${author.name} <${author.email}>`;
+    return this.commitAuthor;
   }
 
   _isEncryptionEnabled() {
@@ -77,26 +105,41 @@ export class GitStorage extends StorageInterface {
       try {
         // Check if repo exists
         await stat(join(this.localPath, '.git'));
-        console.log(`Git repo exists at ${this.localPath}`);
+        logger.debug({ localPath: this.localPath }, 'Git repo exists');
 
         if (this._hasRemote()) {
-          // Fetch and reset to remote
-          await this._git(['fetch', 'origin', this.branch]);
-          await this._git(['reset', '--hard', `origin/${this.branch}`]);
+          // Fetch and reset to remote (branch may not exist yet on empty repos)
+          try {
+            await this._git(['fetch', 'origin', this.branch]);
+            await this._git(['reset', '--hard', `origin/${this.branch}`]);
+          } catch (fetchErr) {
+            if (fetchErr.message.includes("couldn't find remote ref")) {
+              await this._git(['checkout', '-b', this.branch]).catch(() => {});
+              logger.info({ branch: this.branch }, 'Remote branch not found, using local branch');
+            } else {
+              throw fetchErr;
+            }
+          }
         }
       } catch (err) {
         if (err.code === 'ENOENT') {
           if (this._hasRemote()) {
-            // Clone the repo
-            await mkdir(this.localPath, { recursive: true });
-            await this._gitRaw(['clone', '--branch', this.branch, this.remoteUrl, this.localPath]);
-            console.log(`Cloned git repo from ${this.remoteUrl}`);
+            try {
+              await this._gitRaw(['clone', '--branch', this.branch, this.remoteUrl, this.localPath]);
+              logger.info({ remoteUrl: this.remoteUrl }, 'Cloned git repo');
+            } catch (cloneErr) {
+              // Remote repo may be empty — clean up failed clone, then retry without branch
+              await rm(this.localPath, { recursive: true, force: true });
+              await this._gitRaw(['clone', this.remoteUrl, this.localPath]);
+              await this._git(['checkout', '-b', this.branch]);
+              logger.info({ remoteUrl: this.remoteUrl, branch: this.branch }, 'Cloned empty repo, created branch');
+            }
           } else {
             // Initialize local repo without remote
             await mkdir(this.localPath, { recursive: true });
             await this._git(['init']);
             await this._git(['checkout', '-b', this.branch]);
-            console.log(`Initialized local git repo at ${this.localPath}`);
+            logger.info({ localPath: this.localPath }, 'Initialized local git repo');
           }
         } else {
           throw err;
@@ -109,16 +152,16 @@ export class GitStorage extends StorageInterface {
 
       this.lastPull = Date.now();
       if (this._hasRemote()) {
-        console.log(`Connected to git storage: ${this.remoteUrl}`);
+        logger.info({ remoteUrl: this.remoteUrl }, 'Connected to git storage');
       } else {
-        console.log(`Connected to local git storage: ${this.localPath} (no remote)`);
+        logger.info({ localPath: this.localPath }, 'Connected to local git storage (no remote)');
       }
     });
   }
 
   async close() {
     // Nothing to close for git
-    console.log('Disconnected from git storage');
+    logger.info('Disconnected from git storage');
   }
 
   async _git(args) {
@@ -164,11 +207,11 @@ export class GitStorage extends StorageInterface {
       await this._git(['reset', '--hard', `origin/${this.branch}`]);
       this.lastPull = now;
     } catch (err) {
-      console.error('Git pull failed:', err.message);
+      logger.error({ err: err.message }, 'Git pull failed');
     }
   }
 
-  async _commitAndPush(message) {
+  async _commitAndPush(message, author) {
     // Stage all changes
     await this._git(['add', '-A']);
 
@@ -181,7 +224,7 @@ export class GitStorage extends StorageInterface {
     }
 
     // Commit
-    await this._git(['commit', '-m', message, '--author', this.commitAuthor]);
+    await this._git(['commit', '-m', message, '--author', this._resolveAuthor(author)]);
 
     // Skip push if no remote configured
     if (!this._hasRemote()) return;
@@ -318,7 +361,7 @@ export class GitStorage extends StorageInterface {
     return doc;
   }
 
-  async upsert(path, data) {
+  async upsert(path, data, options = {}) {
     return this._withLock(async () => {
       await this._pullIfNeeded();
 
@@ -328,11 +371,11 @@ export class GitStorage extends StorageInterface {
         updatedAt: new Date().toISOString(),
       });
 
-      await this._commitAndPush(`Update ${path}`);
+      await this._commitAndPush(`Update ${path}`, options.author);
     });
   }
 
-  async deleteByPrefix(pathPrefix) {
+  async deleteByPrefix(pathPrefix, options = {}) {
     return this._withLock(async () => {
       await this._pullIfNeeded();
 
@@ -350,7 +393,7 @@ export class GitStorage extends StorageInterface {
       }
 
       if (deletedCount > 0) {
-        await this._commitAndPush(`Delete ${pathPrefix}`);
+        await this._commitAndPush(`Delete ${pathPrefix}`, options.author);
       }
 
       return deletedCount;

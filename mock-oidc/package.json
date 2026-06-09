@@ -2,6 +2,9 @@
   "name": "mock-oidc",
   "version": "1.0.0",
   "type": "module",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.js"
+  },
   "dependencies": {
     "jose": "^5.2.0"
   }

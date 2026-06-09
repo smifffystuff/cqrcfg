@@ -30,6 +30,8 @@ export const config = {
       pullInterval: parseInt(process.env.GIT_PULL_INTERVAL, 10) || 30000,
       userName: process.env.GIT_USER_NAME || 'cqrcfg',
       userEmail: process.env.GIT_USER_EMAIL || 'cqrcfg@localhost',
+      commitNameClaim: process.env.GIT_COMMIT_NAME_CLAIM || '',
+      commitEmailClaim: process.env.GIT_COMMIT_EMAIL_CLAIM || '',
       encryption: {
         salt: process.env.GIT_ENCRYPTION_SALT || '',
         password: process.env.GIT_ENCRYPTION_PASSWORD || '',
@@ -51,6 +53,10 @@ export const config = {
       exchange: process.env.AMQP_EXCHANGE || 'cqrcfg',
       exchangeType: process.env.AMQP_EXCHANGE_TYPE || 'topic',
     },
+  },
+  auth: {
+    tokenHeader: (process.env.AUTH_TOKEN_HEADER || 'authorization').toLowerCase(),
+    bearerPrefix: process.env.AUTH_BEARER_PREFIX !== 'false',
   },
   oidc: {
     jwksUris: process.env.OIDC_JWKS_URIS
@@ -81,6 +87,8 @@ export const config = {
     ttl: parseInt(process.env.CACHE_TTL, 10) || 120,
   },
   logLevel: process.env.LOG_LEVEL || 'info',
+  healthLogLevel: process.env.HEALTH_LOG_LEVEL || 'warn',
+  shutdownDelay: parseInt(process.env.SHUTDOWN_DELAY, 10) || 0,
 };
 
 export function validateConfig() {

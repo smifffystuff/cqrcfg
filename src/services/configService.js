@@ -133,7 +133,7 @@ export async function getSubtreeWithFilter(basePath, filters) {
   return doc.data;
 }
 
-export async function patchNode(path, data) {
+export async function patchNode(path, data, options = {}) {
   const backend = getStorage();
   const existing = await backend.getByPath(path);
 
@@ -142,10 +142,10 @@ export async function patchNode(path, data) {
 
   if (existing) {
     result = deepMerge(existing.data, data);
-    await backend.upsert(path, result);
+    await backend.upsert(path, result, options);
     operation = 'update';
   } else {
-    await backend.upsert(path, data);
+    await backend.upsert(path, data, options);
     result = data;
     operation = 'insert';
   }
@@ -159,11 +159,11 @@ export async function patchNode(path, data) {
   return result;
 }
 
-export async function putNode(path, data) {
+export async function putNode(path, data, options = {}) {
   const backend = getStorage();
   const existing = await backend.getByPath(path);
 
-  await backend.upsert(path, data);
+  await backend.upsert(path, data, options);
 
   // Invalidate cache for affected paths
   invalidateCacheForPath(path);
@@ -175,12 +175,12 @@ export async function putNode(path, data) {
   return data;
 }
 
-export async function deleteSubtree(basePath) {
+export async function deleteSubtree(basePath, options = {}) {
   const backend = getStorage();
 
   // Get paths to delete for notifications
   const docs = await backend.getByPrefix(basePath);
-  const count = await backend.deleteByPrefix(basePath);
+  const count = await backend.deleteByPrefix(basePath, options);
 
   // Invalidate cache for all deleted paths
   for (const doc of docs) {

@@ -2,3 +2,12 @@ node_modules/
 .env
 .DS_Store
 *.log
+.playwright-mcp/
+.mcp.json
+cqrcfg_deploy_key*
+*.code-workspace
+deploy_keys/
+local_setup/
+package-lock.json
+config/
+sync.sh

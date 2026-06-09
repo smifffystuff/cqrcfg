@@ -1,5 +1,6 @@
 import amqp from 'amqplib';
 import { NotificationsInterface } from './interface.js';
+import { logger } from '../logger.js';
 
 export class AMQPNotifications extends NotificationsInterface {
   constructor(options) {
@@ -24,14 +25,14 @@ export class AMQPNotifications extends NotificationsInterface {
 
     // Handle connection errors
     this.connection.on('error', (error) => {
-      console.error('AMQP connection error:', error);
+      logger.error(error, 'AMQP connection error');
     });
 
     this.connection.on('close', () => {
-      console.log('AMQP connection closed');
+      logger.info('AMQP connection closed');
     });
 
-    console.log(`AMQP notifications connected: ${this.url}`);
+    logger.info({ url: this.url }, 'AMQP notifications connected');
   }
 
   async close() {
@@ -55,7 +56,7 @@ export class AMQPNotifications extends NotificationsInterface {
       await this.connection.close();
       this.connection = null;
     }
-    console.log('AMQP notifications disconnected');
+    logger.info('AMQP notifications disconnected');
   }
 
   _pathToRoutingKey(path) {
@@ -129,12 +130,12 @@ export class AMQPNotifications extends NotificationsInterface {
               try {
                 cb(event);
               } catch (error) {
-                console.error('Error in AMQP subscription callback:', error);
+                logger.error(error, 'Error in AMQP subscription callback');
               }
             }
             this.channel.ack(msg);
           } catch (error) {
-            console.error('Error processing AMQP message:', error);
+            logger.error(error, 'Error processing AMQP message');
             this.channel.nack(msg, false, false);
           }
         }

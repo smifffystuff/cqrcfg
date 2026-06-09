@@ -19,7 +19,7 @@ function applyTheme(mode) {
   const filename = getThemeFilename(mode);
   const link = document.getElementById('theme-stylesheet');
   if (link) {
-    link.href = `/themes/${filename}.css`;
+    link.href = `./themes/${filename}.css`;
   }
 }
 

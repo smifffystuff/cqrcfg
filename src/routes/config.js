@@ -11,6 +11,14 @@ import {
   deleteSubtree,
 } from '../services/configService.js';
 import { hasWildcard } from '../storage/interface.js';
+import { getStorage } from '../storage/index.js';
+
+function getAuthorOptions(request) {
+  const storage = getStorage();
+  if (!storage.extractAuthorFromClaims) return {};
+  const author = storage.extractAuthorFromClaims(request.user?.claims);
+  return author ? { author } : {};
+}
 
 /**
  * Helper to check authorization inline (for routes with conditional auth)
@@ -180,7 +188,7 @@ export default async function configRoutes(fastify) {
       }
     }
 
-    const result = await patchNode(destPath, data);
+    const result = await patchNode(destPath, data, getAuthorOptions(request));
 
     return {
       path: destPath,
@@ -273,7 +281,7 @@ export default async function configRoutes(fastify) {
       }
     }
 
-    const result = await putNode(destPath, data);
+    const result = await putNode(destPath, data, getAuthorOptions(request));
 
     return {
       path: destPath,
@@ -290,7 +298,7 @@ export default async function configRoutes(fastify) {
     preHandler: [...commonHooks, authzHook('write')],
   }, async (request, reply) => {
     const path = request.configPath;
-    const deletedCount = await deleteSubtree(path);
+    const deletedCount = await deleteSubtree(path, getAuthorOptions(request));
 
     if (deletedCount === 0) {
       return reply.code(404).send({

@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import websocket from '@fastify/websocket';
 import { config, validateConfig } from './config.js';
+import { logger, loggerConfig } from './logger.js';
 import { initStorage, closeStorage } from './storage/index.js';
 import { initNotifications, closeNotifications } from './notifications/index.js';
 import configRoutes from './routes/config.js';
@@ -16,7 +17,7 @@ async function main() {
 
   // Create Fastify instance
   const fastify = Fastify({
-    logger: config.logLevel === 'debug',
+    logger: loggerConfig,
     bodyLimit: 1048576, // 1MB
   });
 
@@ -24,7 +25,7 @@ async function main() {
   await fastify.register(websocket);
 
   // Health check endpoint (no auth required)
-  fastify.get('/health', async () => {
+  fastify.get('/health', { logLevel: config.healthLogLevel }, async () => {
     return {
       status: 'ok',
       storage: config.storage.type,
@@ -41,7 +42,7 @@ async function main() {
 
   // Error handler
   fastify.setErrorHandler((error, request, reply) => {
-    console.error('Unhandled error:', error);
+    request.log.error(error, 'Unhandled error');
 
     if (error.validation) {
       return reply.code(400).send({
@@ -77,27 +78,36 @@ async function main() {
     host: config.server.host,
   });
 
-  console.log(`Config service running at http://${config.server.host}:${config.server.port}`);
-  console.log(`Storage: ${config.storage.type}`);
-  console.log(`Notifications: ${config.notifications.type}`);
-  console.log('Endpoints:');
-  console.log('  GET    /health        - Health check');
-  console.log('  GET    /config/*      - Get config subtree');
-  console.log('  POST   /config/*      - Merge config (preserves missing values)');
-  console.log('  PUT    /config/*      - Replace config (overwrites all values)');
-  console.log('  DELETE /config/*      - Delete config subtree');
-  console.log('  (POST/PUT support ?from=... to copy from another path)');
-  console.log('  WS     /stream/*      - Subscribe to changes');
+  logger.info({ port: config.server.port, host: config.server.host, storage: config.storage.type, notifications: config.notifications.type, logLevel: config.logLevel }, 'Config service started');
+  logger.info([
+    'Endpoints:',
+    '  GET    /health        - Health check',
+    '  GET    /config/*      - Get config subtree',
+    '  POST   /config/*      - Merge config (preserves missing values)',
+    '  PUT    /config/*      - Replace config (overwrites all values)',
+    '  DELETE /config/*      - Delete config subtree',
+    '  (POST/PUT support ?from=... to copy from another path)',
+    '  WS     /stream/*      - Subscribe to changes',
+  ].join('\n'), 'Available endpoints');
 
   // Graceful shutdown
+  let shuttingDown = false;
   const shutdown = async (signal) => {
-    console.log(`\nReceived ${signal}. Shutting down gracefully...`);
+    if (shuttingDown) return;
+    shuttingDown = true;
+
+    logger.info({ signal }, 'Shutting down gracefully');
 
     await fastify.close();
     await closeNotifications();
     await closeStorage();
-    console.log('Server closed');
-    process.exit(0);
+    logger.info('Server closed - flushing logs and exiting');
+
+    if (config.shutdownDelay > 0) {
+      setTimeout(() => process.exit(0), config.shutdownDelay);
+    } else {
+      process.exit(0);
+    }
   };
 
   process.on('SIGTERM', () => shutdown('SIGTERM'));
@@ -105,6 +115,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('Failed to start server:', error);
+  logger.fatal(error, 'Failed to start server');
   process.exit(1);
 });

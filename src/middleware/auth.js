@@ -1,5 +1,6 @@
 import * as jose from 'jose';
 import { config } from '../config.js';
+import { logger } from '../logger.js';
 
 let combinedJwks = null;
 let jwksKeys = [];
@@ -54,7 +55,7 @@ async function fetchIssuerJwks(issuer) {
     // Fetch OpenID configuration
     const configResponse = await fetch(wellKnownUrl);
     if (!configResponse.ok) {
-      console.warn(`Failed to fetch OpenID config from ${wellKnownUrl}: ${configResponse.status}`);
+      logger.warn({ url: wellKnownUrl, status: configResponse.status }, 'Failed to fetch OpenID config');
       return [];
     }
 
@@ -62,21 +63,21 @@ async function fetchIssuerJwks(issuer) {
     const jwksUri = openidConfig.jwks_uri;
 
     if (!jwksUri) {
-      console.warn(`No jwks_uri found in OpenID config for ${issuer}`);
+      logger.warn({ issuer }, 'No jwks_uri found in OpenID config');
       return [];
     }
 
     // Fetch JWKS
     const jwksResponse = await fetch(jwksUri);
     if (!jwksResponse.ok) {
-      console.warn(`Failed to fetch JWKS from ${jwksUri}: ${jwksResponse.status}`);
+      logger.warn({ jwksUri, status: jwksResponse.status }, 'Failed to fetch JWKS');
       return [];
     }
 
     const jwksData = await jwksResponse.json();
     return jwksData.keys || [];
   } catch (error) {
-    console.warn(`Error fetching JWKS for issuer ${issuer}:`, error.message);
+    logger.warn({ issuer, err: error.message }, 'Error fetching JWKS for issuer');
     return [];
   }
 }
@@ -88,14 +89,14 @@ async function fetchDirectJwks(jwksUri) {
   try {
     const response = await fetch(jwksUri);
     if (!response.ok) {
-      console.warn(`Failed to fetch JWKS from ${jwksUri}: ${response.status}`);
+      logger.warn({ jwksUri, status: response.status }, 'Failed to fetch JWKS from URI');
       return [];
     }
 
     const jwksData = await response.json();
     return jwksData.keys || [];
   } catch (error) {
-    console.warn(`Error fetching JWKS from ${jwksUri}:`, error.message);
+    logger.warn({ jwksUri, err: error.message }, 'Error fetching JWKS from URI');
     return [];
   }
 }
@@ -136,7 +137,7 @@ async function fetchAllJWKS() {
     jwksCacheExpiry = 0; // No caching
   }
 
-  console.log(`Loaded ${allKeys.length} JWKS key(s) from configured sources (cache TTL: ${ttlSeconds}s)`);
+  logger.info({ keyCount: allKeys.length, cacheTtl: ttlSeconds }, 'Loaded JWKS keys');
   return combinedJwks;
 }
 
@@ -216,13 +217,32 @@ function getJwtVerifyOptions() {
   return options;
 }
 
+async function verifyJwtWithFallback(token, keySet, options) {
+  try {
+    return await jose.jwtVerify(token, keySet, options);
+  } catch (error) {
+    if (!error.message?.includes('multiple matching keys')) throw error;
+
+    for (const jwk of jwksKeys) {
+      try {
+        const key = await jose.importJWK(jwk, jwk.alg);
+        return await jose.jwtVerify(token, key, options);
+      } catch {
+        // Try next key
+      }
+    }
+
+    throw error;
+  }
+}
+
 /**
  * Parse and verify a JWT header value, returning the payload claims
  */
 async function parseJwtHeaderValue(headerValue, keySet) {
   if (!headerValue) return null;
 
-  const { payload } = await jose.jwtVerify(headerValue, keySet, getJwtVerifyOptions());
+  const { payload } = await verifyJwtWithFallback(headerValue, keySet, getJwtVerifyOptions());
   return payload;
 }
 
@@ -274,34 +294,40 @@ async function extractClaimsFromHeaders(request, keySet) {
  * Authentication hook - validates JWT and attaches user to request
  */
 export async function authHook(request, reply) {
-  const authHeader = request.headers.authorization;
+  const headerName = config.auth.tokenHeader;
+  const headerValue = request.headers[headerName];
 
-  if (!authHeader) {
+  if (!headerValue) {
     return reply.code(401).send({
       error: 'Unauthorized',
-      message: 'Missing Authorization header',
+      message: `Missing ${headerName} header`,
     });
   }
 
-  const parts = authHeader.split(' ');
-  if (parts.length !== 2 || parts[0] !== 'Bearer') {
-    return reply.code(401).send({
-      error: 'Unauthorized',
-      message: 'Invalid Authorization header format. Expected: Bearer <token>',
-    });
+  let token;
+  if (config.auth.bearerPrefix) {
+    const parts = headerValue.split(' ');
+    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+      return reply.code(401).send({
+        error: 'Unauthorized',
+        message: `Invalid ${headerName} header format. Expected: Bearer <token>`,
+      });
+    }
+    token = parts[1];
+  } else {
+    token = headerValue;
   }
-
-  const token = parts[1];
 
   try {
     const keySet = await getJWKS();
-    const { payload } = await jose.jwtVerify(token, keySet, getJwtVerifyOptions());
+    const { payload } = await verifyJwtWithFallback(token, keySet, getJwtVerifyOptions());
 
     // Check for claims in separate headers (e.g., from a proxy that extracts id_token claims)
     // JWT-format headers are verified, JSON/base64 headers are parsed directly
     const externalClaims = await extractClaimsFromHeaders(request, keySet);
     const claims = externalClaims || payload;
 
+    logger.debug({ claims }, 'Authenticated user claims');
     // Attach user info to request
     const aclClaim = config.oidc.aclClaim;
     let acl = claims[aclClaim] || [];
@@ -322,13 +348,28 @@ export async function authHook(request, reply) {
       }
     }
 
+    // Normalize array of JSON strings to array of objects
+    if (Array.isArray(acl)) {
+      acl = acl.map((entry) => {
+        if (typeof entry === 'string') {
+          try {
+            return JSON.parse(entry);
+          } catch {
+            logger.warn({ entry }, `Failed to parse ${aclClaim} array entry as JSON`);
+            return null;
+          }
+        }
+        return entry;
+      });
+    }
+
     request.user = {
       sub: claims.sub || payload.sub,
       permissions: acl,
       claims,
     };
   } catch (error) {
-    console.error('JWT verification failed:', error.message);
+    logger.warn({ err: error.message }, 'JWT verification failed');
 
     if (error.code === 'ERR_JWT_EXPIRED') {
       return reply.code(401).send({

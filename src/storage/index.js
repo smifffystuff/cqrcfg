@@ -36,6 +36,11 @@ export function createStorage() {
         branch: config.storage.git.branch,
         commitAuthor: config.storage.git.commitAuthor,
         pullInterval: config.storage.git.pullInterval,
+        userName: config.storage.git.userName,
+        userEmail: config.storage.git.userEmail,
+        commitNameClaim: config.storage.git.commitNameClaim,
+        commitEmailClaim: config.storage.git.commitEmailClaim,
+        encryption: config.storage.git.encryption,
       });
 
     default:

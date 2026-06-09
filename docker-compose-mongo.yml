@@ -1,0 +1,38 @@
+services:
+  mock-oidc:
+    build:
+      context: ./mock-oidc
+      dockerfile: Dockerfile
+    ports:
+      - '8888:8888'
+    environment:
+      - MOCK_ACL_CLAIM=${MOCK_ACL_CLAIM:-cqrcfg_acl}
+      - MOCK_DEFAULT_ACL=${MOCK_DEFAULT_ACL:-[{"path":"/config","allow":["read","write","list"]}]}
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:8888/.well-known/jwks.json').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  mongodb:
+    image: mongo:7
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  mongodb_data:
