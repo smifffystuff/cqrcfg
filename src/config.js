@@ -89,8 +89,8 @@ export const config = {
       : [],
     // JWKS cache TTL in seconds (0 = no caching, keys fetched every request)
     jwksCacheTtl: parseInt(process.env.OIDC_JWKS_CACHE_TTL, 10) || 120,
-    // JWT claim name for permissions (default: authz_rules)
-    aclClaim: process.env.OIDC_ACL_CLAIM || 'authz_rules',
+    // JWT claim name for permissions (default: cqrcfg_acl)
+    aclClaim: process.env.OIDC_ACL_CLAIM || 'cqrcfg_acl',
     // Cache TTL for fetched permissions URLs in seconds (default: 300 = 5 minutes)
     aclCacheTtl: parseInt(process.env.OIDC_ACL_CACHE_TTL, 10) || 300,
   },
@@ -105,6 +105,8 @@ export const config = {
     ttl: parseInt(process.env.CACHE_TTL, 10) || 120,
   },
   logLevel: process.env.LOG_LEVEL || 'info',
+  healthLogLevel: process.env.HEALTH_LOG_LEVEL || 'warn',
+  shutdownDelay: parseInt(process.env.SHUTDOWN_DELAY, 10) || 0,
 };
 
 export function validateConfig() {

@@ -67,7 +67,7 @@
 
 ## v1.0.0-build.7 — 2026-05-27
 
-- Update ACL claim references to use `authz_rules`
+- Update ACL claim references to use `cqrcfg_acl`
 - Update claims handling in auth middleware
 - Remove local `cqrcfg` dependency from package.json
 

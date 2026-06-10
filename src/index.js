@@ -22,7 +22,7 @@ async function main() {
   });
 
   // Health check endpoint (no auth required)
-  fastify.get('/health', { logLevel: 'warn' }, async () => {
+  fastify.get('/health', { logLevel: config.healthLogLevel }, async () => {
     return {
       status: 'ok',
       storage: config.storage.type,
@@ -97,8 +97,11 @@ async function main() {
     await closeStorage();
     logger.info('Server closed - flushing logs and exiting');
 
-    // Allow async transport worker to drain buffered messages
-    setTimeout(() => process.exit(0), 200);
+    if (config.shutdownDelay > 0) {
+      setTimeout(() => process.exit(0), config.shutdownDelay);
+    } else {
+      process.exit(0);
+    }
   };
 
   process.on('SIGTERM', () => shutdown('SIGTERM'));

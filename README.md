@@ -206,12 +206,22 @@ Or via curl:
 # Get a token with full permissions
 TOKEN=$(curl -s -X POST http://localhost:8888/token \
   -H 'Content-Type: application/json' \
-  -d '{"sub":"testuser","authz_rules":[{"path":"/config","allow":["read","write","list"]}]}' \
+  -d '{"sub":"testuser","cqrcfg_acl":[{"path":"/config","allow":["read","write","list"]}]}' \
   | jq -r '.access_token')
 
 # Use the token
 curl -H "Authorization: Bearer $TOKEN" http://localhost:3000/config/
 ```
+
+**Mock OIDC environment variables:**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ISSUER` | `http://localhost:8888` | JWT issuer URL |
+| `MOCK_ACL_CLAIM` | `cqrcfg_acl` | JWT claim name used for ACL rules |
+| `MOCK_DEFAULT_ACL` | `[{"path":"/config","allow":["read","write","list"]}]` | Default ACL rules injected when token requests don't specify any |
+
+See `mock-oidc/.env.example` for a template.
 
 ### Using a Real OIDC Provider
 
@@ -245,7 +255,7 @@ The UI is configured via environment variables that generate a runtime config.js
 | `UI_AUTH_PATTERN` | `''` | Regex pattern to extract token from header (capture group 1 used; default strips `Bearer ` prefix) |
 | `UI_NAME_CLAIM` | `sub` | JWT claim to use for display name |
 | `UI_USERNAME_CLAIM` | `sub` | JWT claim to use for username (shown on hover if different from name) |
-| `UI_ACL_CLAIM` | `authz_rules` | JWT claim for ACL (array, JSON string, or URL) |
+| `UI_ACL_CLAIM` | `cqrcfg_acl` | JWT claim for ACL (array, JSON string, or URL) |
 | `UI_ACL_CACHE_TTL` | `300` | Cache TTL in seconds for ACL fetched from URLs |
 
 **Examples:**
@@ -316,6 +326,7 @@ In proxy auth mode:
 |----------|---------|-------------|
 | `PORT` | `3000` | Server port |
 | `HOST` | `0.0.0.0` | Server host |
+| `SHUTDOWN_DELAY` | `0` | Delay in ms before `process.exit` after graceful shutdown (useful for flushing async log transports) |
 | `AUTH_TOKEN_HEADER` | `authorization` | Header name to read the JWT from |
 | `AUTH_BEARER_PREFIX` | `true` | Expect `Bearer ` prefix on the token; set to `false` to read the raw JWT directly |
 | `OIDC_JWKS_URIS` | (optional) | Comma-separated direct JWKS endpoint URLs |
@@ -323,7 +334,7 @@ In proxy auth mode:
 | `OIDC_AUDIENCE` | (optional) | Expected JWT audience |
 | `OIDC_CLAIMS_HEADERS` | (optional) | Comma-separated header names for claims |
 | `OIDC_JWKS_CACHE_TTL` | `120` | JWKS cache TTL in seconds (0 = no caching) |
-| `OIDC_ACL_CLAIM` | `authz_rules` | JWT claim for ACL (array, JSON string, or URL) |
+| `OIDC_ACL_CLAIM` | `cqrcfg_acl` | JWT claim for ACL (array, JSON string, or URL) |
 | `OIDC_ACL_CACHE_TTL` | `300` | Cache TTL in seconds for ACL fetched from URLs |
 
 **Note:** At least one of `OIDC_JWKS_URIS` or `OIDC_ISSUERS` must be configured. Keys from all sources are combined for JWT verification. JWKS keys are cached and refreshed every `OIDC_JWKS_CACHE_TTL` seconds (default 120s) to support key rotation.
@@ -393,6 +404,7 @@ The service uses [Pino](https://getpino.io) for structured JSON logging. By defa
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `LOG_LEVEL` | `info` | Log level: `trace`, `debug`, `info`, `warn`, `error`, `fatal` |
+| `HEALTH_LOG_LEVEL` | `warn` | Log level for the `/health` endpoint (set to `silent` to suppress entirely) |
 | `LOG_TRANSPORT` | (none) | Log transport target (see below) |
 | `LOG_TRANSPORT_OPTIONS` | `{}` | JSON string of options passed to the transport |
 
@@ -775,12 +787,12 @@ The `revision` field contains the new git commit hash after the change (git back
 
 ## JWT Token Format
 
-The service expects JWT tokens with the following claims. The ACL claim name is configurable via `OIDC_ACL_CLAIM` (default: `authz_rules`):
+The service expects JWT tokens with the following claims. The ACL claim name is configurable via `OIDC_ACL_CLAIM` (default: `cqrcfg_acl`):
 
 ```json
 {
   "sub": "user123",
-  "authz_rules": [
+  "cqrcfg_acl": [
     {
       "path": "/config/app1",
       "allow": ["read", "write", "list"]
@@ -853,7 +865,8 @@ ui/                       # React SPA (Vite)
 └── public/themes/        # Light/dark CSS themes per environment
 
 mock-oidc/                # Mock OIDC server for local development
-└── server.js             # Generates JWTs, serves JWKS + OpenID config
+├── server.js             # Generates JWTs, serves JWKS + OpenID config
+└── .env.example          # Configuration template
 ```
 
 ## Error Responses
