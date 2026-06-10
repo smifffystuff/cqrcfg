@@ -1,5 +1,11 @@
 # Releases
 
+## v1.0.0-build.22 — 2026-06-10
+
+- Refactor ACL claim references and update documentation
+- Add shutdown delay configuration
+- Add health log level configuration and update endpoint
+
 ## v1.0.0-build.21 — 2026-06-09
 
 - Enhance cache sync and remove file locking
