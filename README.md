@@ -255,8 +255,8 @@ The UI is configured via environment variables that generate a runtime config.js
 | `UI_AUTH_PATTERN` | `''` | Regex pattern to extract token from header (capture group 1 used; default strips `Bearer ` prefix) |
 | `UI_NAME_CLAIM` | `sub` | JWT claim to use for display name |
 | `UI_USERNAME_CLAIM` | `sub` | JWT claim to use for username (shown on hover if different from name) |
-| `UI_ACL_CLAIM` | `cqrcfg_acl` | JWT claim for ACL (array, JSON string, or URL) |
-| `UI_ACL_CACHE_TTL` | `300` | Cache TTL in seconds for ACL fetched from URLs |
+| `OIDC_ACL_CLAIM` | `cqrcfg_acl` | JWT claim for ACL (array, JSON string, or URL) |
+| `OIDC_ACL_CACHE_TTL` | `300` | Cache TTL in seconds for ACL fetched from URLs |
 
 **Examples:**
 

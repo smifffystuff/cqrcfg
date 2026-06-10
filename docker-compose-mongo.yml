@@ -6,7 +6,7 @@ services:
     ports:
       - '8888:8888'
     environment:
-      - MOCK_ACL_CLAIM=${MOCK_ACL_CLAIM:-cqrcfg_acl}
+      - MOCK_ACL_CLAIM=${OIDC_ACL_CLAIM:-cqrcfg_acl}
       - MOCK_DEFAULT_ACL=${MOCK_DEFAULT_ACL:-[{"path":"/config","allow":["read","write","list"]}]}
     healthcheck:
       test:
