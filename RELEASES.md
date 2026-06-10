@@ -1,5 +1,10 @@
 # Releases
 
+## v1.0.0-build.23 — 2026-06-10
+
+- Refactor logger imports and directory structure
+- Add logger transports for pino integration (log4js, winston, generic transport handling)
+
 ## v1.0.0-build.22 — 2026-06-10
 
 - Refactor ACL claim references and update documentation
