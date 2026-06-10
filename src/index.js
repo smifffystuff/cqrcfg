@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 import { config, validateConfig } from './config.js';
-import { logger, loggerConfig } from './logger.js';
+import { logger, loggerConfig } from './logger/index.js';
 import { initStorage, closeStorage } from './storage/index.js';
 import { initNotifications, closeNotifications } from './notifications/index.js';
 import { initCacheSync, closeCacheSync } from './services/cacheSync.js';

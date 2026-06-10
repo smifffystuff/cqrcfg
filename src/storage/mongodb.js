@@ -1,6 +1,6 @@
 import { MongoClient } from 'mongodb';
 import { StorageInterface, globToRegex, matchesFilter } from './interface.js';
-import { logger } from '../logger.js';
+import { logger } from '../logger/index.js';
 
 const COLLECTION = 'config';
 

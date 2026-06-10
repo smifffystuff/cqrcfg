@@ -13,7 +13,7 @@ import {
   ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { StorageInterface, globToRegex, matchesFilter } from './interface.js';
-import { logger } from '../logger.js';
+import { logger } from '../logger/index.js';
 
 export class DynamoDBStorage extends StorageInterface {
   constructor(options) {

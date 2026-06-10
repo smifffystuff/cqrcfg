@@ -1,7 +1,7 @@
 import { invalidateCacheForPath } from './configService.js';
 import { subscribeToChanges, getInstanceId } from './notificationService.js';
 import { getStorage } from '../storage/index.js';
-import { logger } from '../logger.js';
+import { logger } from '../logger/index.js';
 
 let subscription = null;
 

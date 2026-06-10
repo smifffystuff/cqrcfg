@@ -4,7 +4,7 @@ import { mkdir, readFile, writeFile, rm, readdir, stat } from 'fs/promises';
 import { join, dirname } from 'path';
 import { createCipheriv, createDecipheriv, pbkdf2Sync, randomBytes } from 'crypto';
 import { StorageInterface, ConflictError, globToRegex, matchesFilter } from './interface.js';
-import { logger } from '../logger.js';
+import { logger } from '../logger/index.js';
 
 const execFileAsync = promisify(execFile);
 

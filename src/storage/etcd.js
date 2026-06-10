@@ -1,6 +1,6 @@
 import { Etcd3 } from 'etcd3';
 import { StorageInterface, globToRegex, matchesFilter } from './interface.js';
-import { logger } from '../logger.js';
+import { logger } from '../logger/index.js';
 
 export class EtcdStorage extends StorageInterface {
   constructor(options) {

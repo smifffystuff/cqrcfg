@@ -1,6 +1,6 @@
 import * as jose from 'jose';
 import { config } from '../config.js';
-import { logger } from '../logger.js';
+import { logger } from '../logger/index.js';
 
 let combinedJwks = null;
 let jwksKeys = [];

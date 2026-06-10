@@ -826,11 +826,12 @@ Claims can also be provided via HTTP headers (configured via `OIDC_CLAIMS_HEADER
 src/
 ├── index.js              # Server entry point
 ├── config.js             # Environment configuration
-├── logger.js             # Pino logger with pluggable transport support
-├── transports/
-│   ├── log4js.js         # Pino → log4js bridge transport
-│   ├── winston.js        # Pino → winston bridge transport
-│   └── generic.js        # Pino → any compatible logger bridge
+├── logger/
+│   ├── index.js          # Pino logger with pluggable transport support
+│   └── transports/
+│       ├── log4js.js     # Pino → log4js bridge transport
+│       ├── winston.js    # Pino → winston bridge transport
+│       └── generic.js    # Pino → any compatible logger bridge
 ├── middleware/
 │   ├── auth.js           # JWT authentication (JWKS, claims headers, fallback)
 │   ├── authz.js          # Authorization (permissions)

@@ -1,6 +1,6 @@
 import amqp from 'amqplib';
 import { NotificationsInterface } from './interface.js';
-import { logger } from '../logger.js';
+import { logger } from '../logger/index.js';
 
 export class AMQPNotifications extends NotificationsInterface {
   constructor(options) {

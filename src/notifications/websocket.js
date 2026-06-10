@@ -1,5 +1,5 @@
 import { NotificationsInterface } from './interface.js';
-import { logger } from '../logger.js';
+import { logger } from '../logger/index.js';
 
 /**
  * WebSocket notifications - manages in-process subscriptions for WebSocket clients.

@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { Kafka, Partitioners } from 'kafkajs';
 import { NotificationsInterface } from './interface.js';
-import { logger } from '../logger.js';
+import { logger } from '../logger/index.js';
 
 function buildSslConfig(ssl) {
   if (!ssl || !ssl.enabled) return undefined;
