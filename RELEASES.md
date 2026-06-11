@@ -1,5 +1,10 @@
 # Releases
 
+## v1.0.0-build.27 — 2026-06-11
+
+- Filter subtree queries to return only matching child nodes instead of checking a single exact-path node
+- Update concurrency control and API response headers
+
 ## v1.0.0-build.26 — 2026-06-11
 
 - Add `/whoami` API endpoint returning authenticated user claims
