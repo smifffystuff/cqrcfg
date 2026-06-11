@@ -1,5 +1,6 @@
 import { LRUCache } from 'lru-cache';
 import { getStorage } from '../storage/index.js';
+import { matchesFilter } from '../storage/interface.js';
 import { buildTree, deepMerge } from '../utils/tree.js';
 import { notifyChange } from './notificationService.js';
 import { config } from '../config.js';
@@ -137,13 +138,19 @@ export async function searchPaths(pattern) {
 export async function getSubtreeWithFilter(basePath, filters) {
   // Filtered queries are not cached since filter combinations vary widely
   const backend = getStorage();
-  const doc = await backend.getByPathWithFilter(basePath, filters);
+  const docs = await backend.getByPrefix(basePath);
 
-  if (!doc) {
+  if (docs.length === 0) {
     return null;
   }
 
-  return doc.data;
+  const matched = docs.filter(doc => matchesFilter(doc.data, filters));
+
+  if (matched.length === 0) {
+    return null;
+  }
+
+  return buildTree(matched, basePath);
 }
 
 export async function patchNode(path, data, options = {}) {

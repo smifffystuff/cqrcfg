@@ -23,12 +23,7 @@ function getAuthorOptions(request) {
 }
 
 function getExpectedRevision(request) {
-  const ifMatch = request.headers['if-match'];
-  if (ifMatch) {
-    // Strip weak validator prefix and quotes if present
-    return ifMatch.replace(/^W\//, '').replace(/^"(.*)"$/, '$1');
-  }
-  return undefined;
+  return request.query?.rev || undefined;
 }
 
 /**
@@ -138,7 +133,7 @@ export default async function configRoutes(fastify) {
       // For non-filtered reads, try to get the single node first (includes revision)
       const node = await getNode(path);
       if (node && node.revision) {
-        reply.header('ETag', `"${node.revision}"`);
+        reply.header('cqrcfg-revision', node.revision);
       }
 
       const tree = await getSubtree(path);
@@ -219,7 +214,7 @@ export default async function configRoutes(fastify) {
       const result = await patchNode(destPath, data, options);
 
       if (result.revision) {
-        reply.header('ETag', `"${result.revision}"`);
+        reply.header('cqrcfg-revision', result.revision);
       }
 
       return {
@@ -333,7 +328,7 @@ export default async function configRoutes(fastify) {
       const result = await putNode(destPath, data, options);
 
       if (result.revision) {
-        reply.header('ETag', `"${result.revision}"`);
+        reply.header('cqrcfg-revision', result.revision);
       }
 
       return {

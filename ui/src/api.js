@@ -66,20 +66,16 @@ export const api = {
     });
     const res = await handleResponse(response);
     const data = await res.json();
-    const etag = response.headers.get('etag');
-    const revision = etag ? etag.replace(/^"(.*)"$/, '$1') : null;
+    const revision = response.headers.get('cqrcfg-revision') || null;
     return { data, revision };
   },
 
   async putConfig(path, data, token, revision) {
-    const url = `${API_BASE}${path}`;
+    const url = revision ? `${API_BASE}${path}?rev=${encodeURIComponent(revision)}` : `${API_BASE}${path}`;
     const headers = {
       ...getAuthHeaders(token),
       'Content-Type': 'application/json',
     };
-    if (revision) {
-      headers['If-Match'] = `"${revision}"`;
-    }
     const response = await fetch(url, {
       method: 'PUT',
       headers,
@@ -92,14 +88,11 @@ export const api = {
   },
 
   async patchConfig(path, data, token, revision) {
-    const url = `${API_BASE}${path}`;
+    const url = revision ? `${API_BASE}${path}?rev=${encodeURIComponent(revision)}` : `${API_BASE}${path}`;
     const headers = {
       ...getAuthHeaders(token),
       'Content-Type': 'application/json',
     };
-    if (revision) {
-      headers['If-Match'] = `"${revision}"`;
-    }
     const response = await fetch(url, {
       method: 'PATCH',
       headers,

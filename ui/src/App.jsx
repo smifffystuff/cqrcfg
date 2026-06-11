@@ -225,7 +225,7 @@ function App() {
     setError(null);
 
     try {
-      // Save without revision check (no If-Match header)
+      // Save without revision check (no rev query parameter)
       const result = await api.putConfig(path, data, token, null);
       setRevision(result.revision || null);
       setRemoteChange(null);

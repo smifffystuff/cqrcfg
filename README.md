@@ -522,18 +522,18 @@ GET /health
 
 Returns service status (no authentication required).
 
-### Concurrency Control (ETag / If-Match)
+### Concurrency Control
 
-When using the **git storage backend**, the API supports optimistic locking via standard HTTP ETag headers. This prevents lost updates when multiple users or instances modify the same configuration.
+When using the **git storage backend**, the API supports optimistic locking to prevent lost updates when multiple users or instances modify the same configuration.
 
-**On GET responses**, the server returns an `ETag` header containing the revision hash of the configuration:
+**On GET responses**, the server returns a `cqrcfg-revision` header containing the revision hash:
 ```
-ETag: "a1b2c3d4e5f6..."
+cqrcfg-revision: a1b2c3d4e5f6...
 ```
 
-**On PUT/PATCH/POST requests**, include the `If-Match` header with the ETag value received from your last read:
+**On PUT/PATCH/POST requests**, include the `rev` query parameter with the value received from your last read:
 ```
-If-Match: "a1b2c3d4e5f6..."
+PUT /config/app1/db?rev=a1b2c3d4e5f6...
 ```
 
 If the configuration has been modified since you last read it, the server rejects the write with a `409 Conflict`:
@@ -546,24 +546,23 @@ If the configuration has been modified since you last read it, the server reject
 ```
 
 **Behaviour:**
-- `If-Match` is optional — omitting it gives last-write-wins behaviour (no conflict check)
-- Write responses include a `revision` field with the new revision after the write succeeds
-- The `ETag` header is only returned when using the git backend; other backends return responses without it
-- The UI automatically tracks revisions and sends `If-Match` on save
+- The `rev` query parameter is optional — omitting it gives last-write-wins behaviour (no conflict check)
+- Write responses include a `revision` field in the JSON body with the new revision after the write succeeds
+- The `cqrcfg-revision` header is only returned when using the git backend; other backends return responses without it
+- The UI automatically tracks revisions and sends the `rev` query parameter on save
 
 **Example:**
 ```bash
-# Read config and capture the ETag
-ETAG=$(curl -s -D - -H "Authorization: Bearer $TOKEN" \
-  http://localhost:3000/config/app1/db | grep -i etag | tr -d '\r' | awk '{print $2}')
+# Read config and capture the revision
+REV=$(curl -s -D - -H "Authorization: Bearer $TOKEN" \
+  http://localhost:3000/config/app1/db | grep -i cqrcfg-revision | tr -d '\r' | awk '{print $2}')
 
 # Update with concurrency check
 curl -X PUT \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -H "If-Match: $ETAG" \
   -d '{"host": "new-host", "port": 5432}' \
-  http://localhost:3000/config/app1/db
+  "http://localhost:3000/config/app1/db?rev=$REV"
 ```
 
 ### Get Config Subtree
@@ -783,7 +782,7 @@ ws.onmessage = (event) => {
 {"type": "change", "operation": "delete", "path": "/config/app1/db", "revision": null, "timestamp": "2025-06-05T12:01:00.000Z"}
 ```
 
-The `revision` field contains the new git commit hash after the change (git backend only; `null` for other backends or deletes). Clients can use this to update their local ETag without refetching.
+The `revision` field contains the new git commit hash after the change (git backend only; `null` for other backends or deletes). Clients can use this to update their local revision without refetching.
 
 ## JWT Token Format
 
@@ -887,7 +886,7 @@ All errors return JSON:
 | 401 | Unauthorized | Missing or invalid JWT |
 | 403 | Forbidden | Insufficient permissions |
 | 404 | Not Found | Config path doesn't exist |
-| 409 | Conflict | Config was modified since last read (stale `If-Match` ETag) |
+| 409 | Conflict | Config was modified since last read (stale `rev` query parameter) |
 | 500 | Internal Server Error | Unexpected error |
 
 ## License
