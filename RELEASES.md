@@ -1,5 +1,9 @@
 # Releases
 
+## v1.0.0-build.25 — 2026-06-11
+
+- Display username from proxy auth token instead of generic "Proxy Auth" badge
+
 ## v1.0.0-build.24 — 2026-06-11
 
 - Add "Go to path" direct navigation in ConfigBrowser UI
