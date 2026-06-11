@@ -59,11 +59,19 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [remoteChange, setRemoteChange] = useState(null);
 
+  // Proxy auth token (fetched from response header)
+  const [proxyToken, setProxyToken] = useState(null);
+
+  useEffect(() => {
+    if (!isProxyAuthMode) return;
+    api.fetchProxyToken().then(t => { if (t) setProxyToken(t); });
+  }, []);
+
   // Parse JWT payload
   const jwtPayload = useMemo(() => {
-    if (isProxyAuthMode) return null;
+    if (isProxyAuthMode) return parseJwtPayload(proxyToken);
     return parseJwtPayload(token);
-  }, [token]);
+  }, [token, proxyToken]);
 
   // State for async-fetched permissions
   const [fetchedAcl, setFetchedPermissions] = useState(null);
@@ -310,7 +318,7 @@ function App() {
           {!isProxyAuthMode && (
             <TokenInput token={token} onTokenChange={handleTokenChange} />
           )}
-          {isProxyAuthMode && (
+          {isProxyAuthMode && !userInfo && (
             <span className="proxy-auth-badge">Proxy Auth</span>
           )}
         </div>
