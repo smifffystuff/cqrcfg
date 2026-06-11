@@ -10,9 +10,10 @@ body {
 }
 
 .app {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 /* Header */
@@ -203,6 +204,7 @@ button.btn-delete:hover {
   position: relative;
   resize: horizontal;
   overflow: hidden;
+  min-height: 0;
 }
 
 .sidebar::after {
@@ -226,6 +228,7 @@ button.btn-delete:hover {
   padding: 1rem 2rem;
   overflow: auto;
   min-width: 0;
+  min-height: 0;
 }
 
 .placeholder {
@@ -393,6 +396,7 @@ button.btn-delete:hover {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
   max-width: 800px;
 }
 

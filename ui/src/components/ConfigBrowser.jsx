@@ -18,6 +18,7 @@ export function ConfigBrowser({
   const [searchResults, setSearchResults] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState(null);
+  const [goToPath, setGoToPath] = useState('');
 
   const getDisplayName = (path) => {
     const parts = path.split('/').filter(Boolean);
@@ -138,6 +139,29 @@ export function ConfigBrowser({
           })}
         </div>
       </div>
+
+      <form className="search-form" onSubmit={(e) => {
+        e.preventDefault();
+        if (!goToPath.trim()) return;
+        let target = goToPath.trim();
+        if (!target.startsWith('/config')) {
+          target = `/config${target.startsWith('/') ? '' : '/'}${target}`;
+        }
+        onNavigateTo(target);
+        setGoToPath('');
+        clearSearch();
+      }}>
+        <input
+          type="text"
+          className="search-input"
+          placeholder="Go to path... /config/app/db"
+          value={goToPath}
+          onChange={(e) => setGoToPath(e.target.value)}
+        />
+        <button type="submit" disabled={!goToPath.trim()}>
+          Go
+        </button>
+      </form>
 
       <form className="search-form" onSubmit={handleSearch}>
         <input
