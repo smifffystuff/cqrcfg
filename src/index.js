@@ -5,6 +5,7 @@ import { initStorage, closeStorage } from './storage/index.js';
 import { initNotifications, closeNotifications } from './notifications/index.js';
 import { initCacheSync, closeCacheSync } from './services/cacheSync.js';
 import configRoutes from './routes/config.js';
+import { authHook } from './middleware/auth.js';
 
 async function main() {
   // Validate configuration
@@ -29,6 +30,11 @@ async function main() {
       notifications: config.notifications.type,
       timestamp: new Date().toISOString(),
     };
+  });
+
+  // Whoami endpoint (returns authenticated user's claims)
+  fastify.get('/whoami', { preHandler: authHook }, async (request) => {
+    return { claims: request.user.claims };
   });
 
   // Mount config routes

@@ -149,4 +149,18 @@ export const api = {
     }
   },
 
+  // Fetch authenticated user's claims from the API
+  async fetchWhoami() {
+    try {
+      const response = await fetch(`${API_BASE}/whoami`, {
+        credentials: 'include',
+      });
+      if (!response.ok) return null;
+      const data = await response.json();
+      return data.claims || null;
+    } catch {
+      return null;
+    }
+  },
+
 };

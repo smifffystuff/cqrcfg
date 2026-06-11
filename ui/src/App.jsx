@@ -59,19 +59,19 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [remoteChange, setRemoteChange] = useState(null);
 
-  // Proxy auth token (fetched from response header)
-  const [proxyToken, setProxyToken] = useState(null);
+  // Proxy auth claims (fetched from /whoami endpoint)
+  const [proxyClaims, setProxyClaims] = useState(null);
 
   useEffect(() => {
     if (!isProxyAuthMode) return;
-    api.fetchProxyToken().then(t => { if (t) setProxyToken(t); });
+    api.fetchWhoami().then(claims => { if (claims) setProxyClaims(claims); });
   }, []);
 
   // Parse JWT payload
   const jwtPayload = useMemo(() => {
-    if (isProxyAuthMode) return parseJwtPayload(proxyToken);
+    if (isProxyAuthMode) return proxyClaims;
     return parseJwtPayload(token);
-  }, [token, proxyToken]);
+  }, [token, proxyClaims]);
 
   // State for async-fetched permissions
   const [fetchedAcl, setFetchedPermissions] = useState(null);
