@@ -1,5 +1,10 @@
 # Releases
 
+## v1.0.0-build.24 — 2026-06-11
+
+- Add "Go to path" direct navigation in ConfigBrowser UI
+- Merge upstream changes
+
 ## v1.0.0-build.23 — 2026-06-10
 
 - Refactor logger imports and directory structure
