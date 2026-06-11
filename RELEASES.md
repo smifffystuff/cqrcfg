@@ -1,5 +1,10 @@
 # Releases
 
+## v1.0.0-build.26 — 2026-06-11
+
+- Add `/whoami` API endpoint returning authenticated user claims
+- Display username in proxy auth mode via `/whoami` instead of static "Proxy Auth" badge
+
 ## v1.0.0-build.25 — 2026-06-11
 
 - Display username from proxy auth token instead of generic "Proxy Auth" badge
