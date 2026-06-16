@@ -276,6 +276,7 @@ async function extractClaimsFromHeaders(request, keySet) {
   for (const headerName of claimsHeaders) {
     const headerValue = request.headers[headerName.toLowerCase()];
     const claims = await parseHeaderValue(headerValue, keySet);
+    logger.debug({ headerName, claims }, 'Parsed claims header'); // TODO: remove - debugging invalid_token claims issue
 
     if (claims) {
       if (mergedClaims === null) {
@@ -297,9 +298,12 @@ async function extractClaimsFromHeaders(request, keySet) {
 export async function verifyToken(token, headers) {
   const keySet = await getJWKS();
   const { payload } = await verifyJwtWithFallback(token, keySet, getJwtVerifyOptions());
+  logger.debug({ sub: payload.sub }, 'JWT payload verified'); // TODO: remove - debugging invalid_token claims issue
 
   const externalClaims = await extractClaimsFromHeaders({ headers: headers || {} }, keySet);
+  const claimsSource = externalClaims ? 'headers' : 'jwt';
   const claims = externalClaims || payload;
+  logger.debug({ claimsSource, sub: claims.sub }, 'Resolved claims'); // TODO: remove - debugging invalid_token claims issue
 
   let acl = claims[config.oidc.aclClaim] || [];
 
@@ -361,7 +365,7 @@ export async function authHook(request, reply) {
 
   try {
     request.user = await verifyToken(token, request.headers);
-    logger.debug({ claims: request.user.claims, token }, 'Authenticated user claims');
+    logger.debug({ claims: request.user.claims, token }, 'Authenticated user claims'); // TODO: remove - debugging invalid_token claims issue
   } catch (error) {
     logger.warn({ err: error.message }, 'JWT verification failed');
 
