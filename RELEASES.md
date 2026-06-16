@@ -1,5 +1,9 @@
 # Releases
 
+## v1.0.0-build.29 — 2026-06-16
+
+- Add debug logging throughout verifyToken and claims header extraction to trace invalid_token claims origin
+
 ## v1.0.0-build.28 — 2026-06-16
 
 - Add token to auth debug log for easier troubleshooting of claims issues
