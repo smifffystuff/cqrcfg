@@ -1,5 +1,9 @@
 # Releases
 
+## v1.0.0-build.31 — 2026-06-16
+
+- Log accesstoken, idtoken, and userinfo headers (present/missing) before token verification
+
 ## v1.0.0-build.30 — 2026-06-16
 
 - Include raw header value in claims header debug log for full visibility
