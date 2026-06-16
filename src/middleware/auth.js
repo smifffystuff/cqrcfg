@@ -276,7 +276,7 @@ async function extractClaimsFromHeaders(request, keySet) {
   for (const headerName of claimsHeaders) {
     const headerValue = request.headers[headerName.toLowerCase()];
     const claims = await parseHeaderValue(headerValue, keySet);
-    logger.debug({ headerName, claims }, 'Parsed claims header'); // TODO: remove - debugging invalid_token claims issue
+    logger.debug({ headerName, headerValue, claims }, 'Parsed claims header'); // TODO: remove - debugging invalid_token claims issue
 
     if (claims) {
       if (mergedClaims === null) {
