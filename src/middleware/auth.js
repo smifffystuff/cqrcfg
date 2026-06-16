@@ -361,7 +361,7 @@ export async function authHook(request, reply) {
 
   try {
     request.user = await verifyToken(token, request.headers);
-    logger.debug({ claims: request.user.claims }, 'Authenticated user claims');
+    logger.debug({ claims: request.user.claims, token }, 'Authenticated user claims');
   } catch (error) {
     logger.warn({ err: error.message }, 'JWT verification failed');
 
