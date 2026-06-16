@@ -1,5 +1,9 @@
 # Releases
 
+## v1.0.0-build.28 — 2026-06-16
+
+- Add token to auth debug log for easier troubleshooting of claims issues
+
 ## v1.0.0-build.27 — 2026-06-11
 
 - Filter subtree queries to return only matching child nodes instead of checking a single exact-path node
