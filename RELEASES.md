@@ -1,5 +1,9 @@
 # Releases
 
+## v1.0.0-build.30 — 2026-06-16
+
+- Include raw header value in claims header debug log for full visibility
+
 ## v1.0.0-build.29 — 2026-06-16
 
 - Add debug logging throughout verifyToken and claims header extraction to trace invalid_token claims origin
