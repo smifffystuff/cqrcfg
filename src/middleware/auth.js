@@ -276,8 +276,7 @@ async function extractClaimsFromHeaders(request, keySet) {
   for (const headerName of claimsHeaders) {
     const headerValue = request.headers[headerName.toLowerCase()];
     const claims = await parseHeaderValue(headerValue, keySet);
-
-    if (claims) {
+    if (claims && !claims.error) {
       if (mergedClaims === null) {
         mergedClaims = claims;
       } else {
