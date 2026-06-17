@@ -1,5 +1,11 @@
 # Releases
 
+## v1.0.0-build.33 — 2026-06-17
+
+- Merge external header claims with JWT payload (payload takes priority) instead of using one or the other
+- Filter out any claims whose key starts with "error" (e.g. error, error_description)
+- Remove debug logging from verifyToken
+
 ## v1.0.0-build.32 — 2026-06-17
 
 - Skip claims from headers that contain an error response (e.g. invalid_token from userinfo) instead of merging them
