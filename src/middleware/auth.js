@@ -276,7 +276,7 @@ async function extractClaimsFromHeaders(request, keySet) {
   for (const headerName of claimsHeaders) {
     const headerValue = request.headers[headerName.toLowerCase()];
     const claims = await parseHeaderValue(headerValue, keySet);
-    if (claims && !claims.error) {
+    if (claims) {
       if (mergedClaims === null) {
         mergedClaims = claims;
       } else {
@@ -286,6 +286,7 @@ async function extractClaimsFromHeaders(request, keySet) {
     }
   }
 
+  console.log('*************************** Merged claims from headers:', mergedClaims);
   return mergedClaims;
 }
 
@@ -296,9 +297,11 @@ async function extractClaimsFromHeaders(request, keySet) {
 export async function verifyToken(token, headers) {
   const keySet = await getJWKS();
   const { payload } = await verifyJwtWithFallback(token, keySet, getJwtVerifyOptions());
-
   const externalClaims = await extractClaimsFromHeaders({ headers: headers || {} }, keySet);
-  const claims = externalClaims || payload;
+  const claims = Object.fromEntries(
+    Object.entries({ ...externalClaims, ...payload })
+      .filter(([key]) => !key.startsWith('error'))
+  );
 
   let acl = claims[config.oidc.aclClaim] || [];
 
@@ -324,7 +327,7 @@ export async function verifyToken(token, headers) {
   }
 
   return {
-    sub: claims.sub || payload.sub,
+    sub: claims.sub,
     permissions: acl,
     claims,
   };
