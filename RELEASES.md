@@ -1,5 +1,10 @@
 # Releases
 
+## v1.0.0-build.32 — 2026-06-17
+
+- Skip claims from headers that contain an error response (e.g. invalid_token from userinfo) instead of merging them
+- Remove debug console.log from claims extraction
+
 ## v1.0.0-build.31 — 2026-06-16
 
 - Log accesstoken, idtoken, and userinfo headers (present/missing) before token verification
