@@ -1,5 +1,9 @@
 # Releases
 
+## v1.0.0-build.34 — 2026-06-19
+
+- Add DUMMY_VARIABLE to .env.example for testing environment loading
+
 ## v1.0.0-build.33 — 2026-06-17
 
 - Merge external header claims with JWT payload (payload takes priority) instead of using one or the other
