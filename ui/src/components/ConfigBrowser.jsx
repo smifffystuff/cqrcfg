@@ -137,6 +137,9 @@ export function ConfigBrowser({
               </span>
             );
           })}
+          {window.__CQRCFG_GIT_BRANCH__ && (
+            <span className="branch-badge">{window.__CQRCFG_GIT_BRANCH__}</span>
+          )}
         </div>
       </div>
 

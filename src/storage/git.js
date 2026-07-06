@@ -106,6 +106,17 @@ export class GitStorage extends StorageInterface {
         await stat(join(this.localPath, '.git'));
         logger.debug({ localPath: this.localPath }, 'Git repo exists');
 
+        // Ensure we're on the configured branch
+        const currentBranch = await this._git(['rev-parse', '--abbrev-ref', 'HEAD']);
+        if (currentBranch !== this.branch) {
+          logger.info({ from: currentBranch, to: this.branch }, 'Switching to configured branch');
+          try {
+            await this._git(['checkout', this.branch]);
+          } catch {
+            await this._git(['checkout', '-b', this.branch]);
+          }
+        }
+
         if (this._hasRemote()) {
           // Fetch and reset to remote (branch may not exist yet on empty repos)
           try {
@@ -151,9 +162,9 @@ export class GitStorage extends StorageInterface {
 
       this.lastPull = Date.now();
       if (this._hasRemote()) {
-        logger.info({ remoteUrl: this.remoteUrl }, 'Connected to git storage');
+        logger.info({ remoteUrl: this.remoteUrl, branch: this.branch }, 'Connected to git storage');
       } else {
-        logger.info({ localPath: this.localPath }, 'Connected to local git storage (no remote)');
+        logger.info({ localPath: this.localPath, branch: this.branch }, 'Connected to local git storage (no remote)');
       }
     });
   }

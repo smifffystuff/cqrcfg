@@ -20,6 +20,7 @@ window.__CQRCFG_ACL_CLAIM__ = '${env.OIDC_ACL_CLAIM || 'cqrcfg_acl'}';
 window.__CQRCFG_ACL_CACHE_TTL__ = ${env.OIDC_ACL_CACHE_TTL || 300};
 window.__CQRCFG_NAME_CLAIM__ = '${env.UI_NAME_CLAIM || 'sub'}';
 window.__CQRCFG_USERNAME_CLAIM__ = '${env.UI_USERNAME_CLAIM || 'sub'}';
+window.__CQRCFG_GIT_BRANCH__ = '${env.GIT_BRANCH || ''}';
 `);
       });
     },
