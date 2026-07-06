@@ -1,5 +1,11 @@
 # Releases
 
+## v1.0.0-build.35 — 2026-07-06
+
+- Display configured git branch in UI breadcrumb (only when GIT_BRANCH is set in .env)
+- Switch git storage to the configured branch on startup if the local repo is on a different branch
+- Log the active branch when git storage connects
+
 ## v1.0.0-build.34 — 2026-06-19
 
 - Add DUMMY_VARIABLE to .env.example for testing environment loading
