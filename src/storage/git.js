@@ -499,4 +499,63 @@ export class GitStorage extends StorageInterface {
       return paths;
     });
   }
+
+  async promote(path, targetBranch, options = {}) {
+    return this._withLock(async () => {
+      await this._pullIfNeeded();
+
+      const filePath = this._pathToFile(path);
+      const content = await this._readJsonFile(filePath);
+      if (!content) {
+        const err = new Error(`Configuration not found at path: ${path}`);
+        err.code = 'NOT_FOUND';
+        throw err;
+      }
+
+      const sourceBranch = this.branch;
+
+      try {
+        if (this._hasRemote()) {
+          try {
+            await this._git(['fetch', 'origin', targetBranch]);
+          } catch (err) {
+            if (err.message.includes("couldn't find remote ref")) {
+              const notFound = new Error(`Target branch '${targetBranch}' does not exist on the remote`);
+              notFound.code = 'TARGET_BRANCH_NOT_FOUND';
+              throw notFound;
+            }
+            throw err;
+          }
+        }
+
+        await this._git(['checkout', targetBranch]);
+
+        if (this._hasRemote()) {
+          await this._git(['reset', '--hard', `origin/${targetBranch}`]);
+        }
+
+        await this._writeJsonFile(filePath, {
+          data: content.data,
+          updatedAt: new Date().toISOString(),
+        });
+
+        await this._git(['add', '-A']);
+        try {
+          await this._git(['diff', '--cached', '--quiet']);
+        } catch {
+          await this._git(['commit', '-m', `Promote ${path} from ${sourceBranch}`, '--author', this._resolveAuthor(options.author)]);
+          if (this._hasRemote()) {
+            await this._git(['push', 'origin', targetBranch]);
+          }
+        }
+      } finally {
+        await this._git(['checkout', sourceBranch]);
+        if (this._hasRemote()) {
+          try {
+            await this._git(['reset', '--hard', `origin/${sourceBranch}`]);
+          } catch { /* best effort */ }
+        }
+      }
+    });
+  }
 }

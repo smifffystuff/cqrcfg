@@ -566,9 +566,40 @@ button.btn-delete:hover {
   border-top: 1px solid var(--border);
 }
 
+.editor-footer-left {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .editor-footer-right {
   display: flex;
   gap: 0.5rem;
+}
+
+button.btn-promote {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+button.btn-promote:hover {
+  opacity: 0.9;
+}
+
+button.btn-promote-confirm {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.modal p {
+  margin: 0.5rem 0 1rem;
+  line-height: 1.5;
+}
+
+.modal code {
+  background: var(--bg-tertiary);
+  padding: 0.125rem 0.375rem;
+  border-radius: 3px;
+  font-size: 0.875rem;
 }
 
 /* Modal */

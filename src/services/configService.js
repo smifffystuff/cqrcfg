@@ -219,6 +219,22 @@ export async function deleteSubtree(basePath, options = {}) {
   return count;
 }
 
+export async function promoteNode(path, options = {}) {
+  const backend = getStorage();
+  const targetBranch = config.storage.git.promotionBranch;
+
+  if (!targetBranch) {
+    const err = new Error('Promotion branch is not configured (GIT_PROMOTION_BRANCH is not set)');
+    err.code = 'PROMOTION_NOT_CONFIGURED';
+    throw err;
+  }
+
+  await backend.promote(path, targetBranch, options);
+  await notifyChange('promoted', path);
+
+  return { path, targetBranch };
+}
+
 // Export for testing/monitoring
 export function getCacheStats() {
   const c = getCache();

@@ -191,6 +191,7 @@ GIT_DATA_PATH=./data/git docker compose -f docker-compose.git.yml up -d
 | `GIT_COMMIT_EMAIL_CLAIM` | (none) | JWT claim path for commit author email (dot notation, e.g. `useremail`) |
 | `GIT_ENCRYPTION_SALT` | (none) | Hex-encoded 8-byte salt for encryption |
 | `GIT_ENCRYPTION_PASSWORD` | (none) | Password for encryption (both required to enable) |
+| `GIT_PROMOTION_BRANCH` | (none) | Target branch for config promotion. When set, enables the "Promote" button in the UI which copies the selected config to this branch. If unset, promotion is disabled and hidden. |
 
 **Commit Author Attribution:** When `GIT_COMMIT_NAME_CLAIM` and `GIT_COMMIT_EMAIL_CLAIM` are set, the git backend extracts the commit author from the authenticated user's JWT claims. This allows individual config changes to be attributed to the user who made them. If the claims are not present in the token, the default `GIT_COMMIT_AUTHOR` is used.
 
@@ -361,6 +362,7 @@ In proxy auth mode:
 | `GIT_COMMIT_EMAIL_CLAIM` | (optional) | JWT claim path for git commit author email (dot notation) |
 | `GIT_ENCRYPTION_SALT` | (optional) | Hex-encoded 8-byte salt for AES-256-CBC encryption |
 | `GIT_ENCRYPTION_PASSWORD` | (optional) | Password for encryption; both salt and password required to enable |
+| `GIT_PROMOTION_BRANCH` | (optional) | Target branch for promotion; enables "Promote" button in UI |
 
 ### Notification Settings
 

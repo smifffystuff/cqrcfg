@@ -115,6 +115,17 @@ export const api = {
     return res.json();
   },
 
+  async promoteConfig(path, token) {
+    const url = `${API_BASE}${path}/promote`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(token),
+      credentials: isProxyAuthMode ? 'include' : 'same-origin',
+    });
+    const res = await handleResponse(response);
+    return res.json();
+  },
+
   // Fetch token from configured header (for proxy auth mode)
   async fetchProxyToken() {
     if (!AUTH_HEADER) return null;

@@ -10,6 +10,7 @@ import {
   patchNode,
   putNode,
   deleteSubtree,
+  promoteNode,
 } from '../services/configService.js';
 import { ConflictError } from '../storage/interface.js';
 import { hasWildcard } from '../storage/interface.js';
@@ -241,10 +242,40 @@ export default async function configRoutes(fastify) {
    *
    * Default: data from request body
    * With ?from=/other/path: merge from another config path
+   *
+   * Special case: POST /config/.../promote — promotes config to the promotion branch
    */
   fastify.post('/*', {
     preHandler: [authHook, normalizePathHook],
-  }, mergeHandler);
+  }, async (request, reply) => {
+    // Handle promote action when path ends with /promote
+    if (request.configPath.endsWith('/promote')) {
+      request.configPath = request.configPath.replace(/\/promote$/, '');
+
+      const authzResult = await checkAuthz(request, reply, 'write');
+      if (authzResult === false) return;
+
+      const options = getAuthorOptions(request);
+
+      try {
+        const result = await promoteNode(request.configPath, options);
+        return { promoted: true, path: result.path, targetBranch: result.targetBranch };
+      } catch (err) {
+        if (err.code === 'PROMOTION_NOT_CONFIGURED') {
+          return reply.code(400).send({ error: 'Bad Request', message: err.message });
+        }
+        if (err.code === 'NOT_FOUND') {
+          return reply.code(404).send({ error: 'Not Found', message: err.message });
+        }
+        if (err.code === 'TARGET_BRANCH_NOT_FOUND') {
+          return reply.code(502).send({ error: 'Bad Gateway', message: err.message });
+        }
+        throw err;
+      }
+    }
+
+    return mergeHandler(request, reply);
+  });
 
   /**
    * PATCH /config/*
