@@ -7,11 +7,14 @@ function extractPathsFromTree(tree, basePath) {
     if (obj === null || typeof obj !== 'object') return;
     for (const key of Object.keys(obj)) {
       const childPath = `${currentPath}/${key}`;
-      if (obj[key] !== null && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
-        const childKeys = Object.keys(obj[key]);
-        const hasNestedObjects = childKeys.some(k => obj[key][k] !== null && typeof obj[key][k] === 'object' && !Array.isArray(obj[key][k]));
-        if (hasNestedObjects) {
-          walk(obj[key], childPath);
+      const value = obj[key];
+      if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+        const childValues = Object.values(value);
+        const allObjects = childValues.length > 0 && childValues.every(
+          v => v !== null && typeof v === 'object' && !Array.isArray(v)
+        );
+        if (allObjects) {
+          walk(value, childPath);
         } else {
           paths.push(childPath);
         }
