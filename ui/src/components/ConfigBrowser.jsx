@@ -1,6 +1,29 @@
 import { useState } from 'react';
 import { api } from '../api';
 
+function extractPathsFromTree(tree, basePath) {
+  const paths = [];
+  function walk(obj, currentPath) {
+    if (obj === null || typeof obj !== 'object') return;
+    for (const key of Object.keys(obj)) {
+      const childPath = `${currentPath}/${key}`;
+      if (obj[key] !== null && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+        const childKeys = Object.keys(obj[key]);
+        const hasNestedObjects = childKeys.some(k => obj[key][k] !== null && typeof obj[key][k] === 'object' && !Array.isArray(obj[key][k]));
+        if (hasNestedObjects) {
+          walk(obj[key], childPath);
+        } else {
+          paths.push(childPath);
+        }
+      } else {
+        paths.push(childPath);
+      }
+    }
+  }
+  walk(tree, basePath);
+  return paths.length > 0 ? paths : [basePath];
+}
+
 export function ConfigBrowser({
   currentPath,
   paths,
@@ -14,38 +37,24 @@ export function ConfigBrowser({
 }) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newKeyName, setNewKeyName] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState(null);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState(null);
   const [goToPath, setGoToPath] = useState('');
+
+  // Unified filter state
+  const [keySearch, setKeySearch] = useState('');
   const [jsonPathQuery, setJsonPathQuery] = useState('');
-  const [jsonPathResults, setJsonPathResults] = useState(null);
-  const [jsonPathError, setJsonPathError] = useState(null);
-  const [isJsonPathSearching, setIsJsonPathSearching] = useState(false);
+  const [propFilters, setPropFilters] = useState([{ key: '', value: '' }]);
+  const [filterResults, setFilterResults] = useState(null);
+  const [filterError, setFilterError] = useState(null);
+  const [isFiltering, setIsFiltering] = useState(false);
 
   const getDisplayName = (path) => {
     const parts = path.split('/').filter(Boolean);
     return parts[parts.length - 1] || path;
   };
 
-  const getRelativePath = (path) => {
-    if (path.startsWith(currentPath + '/')) {
-      return path.slice(currentPath.length + 1);
-    }
-    if (path === currentPath) {
-      return getDisplayName(path);
-    }
-    return path;
-  };
-
-  const isDirectory = (path) => {
-    return paths.some((p) => p !== path && p.startsWith(path + '/'));
-  };
-
   const getImmediateChildren = () => {
     const children = new Set();
-    const prefix = currentPath === '/config' ? currentPath : currentPath;
+    const prefix = currentPath;
 
     for (const path of paths) {
       if (path === currentPath) continue;
@@ -72,62 +81,75 @@ export function ConfigBrowser({
     setNewKeyName('');
   };
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!searchQuery.trim() || !token) return;
+  const clearFilters = () => {
+    setKeySearch('');
+    setJsonPathQuery('');
+    setPropFilters([{ key: '', value: '' }]);
+    setFilterResults(null);
+    setFilterError(null);
+  };
 
-    setIsSearching(true);
-    setSearchError(null);
+  const handleFilter = async (e) => {
+    e.preventDefault();
+    if (!token) return;
+
+    const hasKeySearch = keySearch.trim().length > 0;
+    const hasJsonPath = jsonPathQuery.trim().length > 0;
+    const validProps = propFilters.filter(f => f.key.trim() && f.value.trim());
+    const hasProps = validProps.length > 0;
+
+    if (!hasKeySearch && !hasJsonPath && !hasProps) return;
+
+    setIsFiltering(true);
+    setFilterError(null);
 
     try {
-      // Build search pattern - if query doesn't start with /, search under current path
-      let pattern = searchQuery.trim();
-      if (!pattern.startsWith('/')) {
-        // Auto-add wildcards for convenience: "db" -> "**/db**"
-        if (!pattern.includes('*') && !pattern.includes('?')) {
-          pattern = `**/*${pattern}*`;
+      let results = null;
+
+      if (hasKeySearch) {
+        let pattern = keySearch.trim();
+        if (!pattern.startsWith('/')) {
+          if (!pattern.includes('*') && !pattern.includes('?')) {
+            pattern = `**/*${pattern}*`;
+          }
+          pattern = `${currentPath}/${pattern}`;
         }
-        pattern = `${currentPath}/${pattern}`;
+        const result = await api.searchPaths(pattern, token);
+        results = result.keys || [];
+      } else if (hasJsonPath) {
+        const result = await api.queryJsonPath(currentPath, jsonPathQuery.trim(), token);
+        results = extractPathsFromTree(result, currentPath);
+      } else if (hasProps) {
+        const filterObj = {};
+        for (const f of validProps) {
+          filterObj[f.key.trim()] = f.value.trim();
+        }
+        const result = await api.queryKeyValueFilter(currentPath, filterObj, token);
+        results = extractPathsFromTree(result, currentPath);
       }
 
-      const result = await api.searchPaths(pattern, token);
-      setSearchResults(result.keys || []);
+      setFilterResults(results);
     } catch (err) {
-      setSearchError(err.message);
-      setSearchResults([]);
+      setFilterError(err.message);
+      setFilterResults(null);
     } finally {
-      setIsSearching(false);
+      setIsFiltering(false);
     }
   };
 
-  const clearSearch = () => {
-    setSearchQuery('');
-    setSearchResults(null);
-    setSearchError(null);
+  const addPropRow = () => {
+    setPropFilters([...propFilters, { key: '', value: '' }]);
   };
 
-  const handleJsonPathSearch = async (e) => {
-    e.preventDefault();
-    if (!jsonPathQuery.trim() || !token) return;
-
-    setIsJsonPathSearching(true);
-    setJsonPathError(null);
-
-    try {
-      const result = await api.queryJsonPath(currentPath, jsonPathQuery.trim(), token);
-      setJsonPathResults(result);
-    } catch (err) {
-      setJsonPathError(err.message);
-      setJsonPathResults(null);
-    } finally {
-      setIsJsonPathSearching(false);
-    }
+  const removePropRow = (index) => {
+    const updated = propFilters.filter((_, i) => i !== index);
+    setPropFilters(updated.length === 0 ? [{ key: '', value: '' }] : updated);
   };
 
-  const clearJsonPath = () => {
-    setJsonPathQuery('');
-    setJsonPathResults(null);
-    setJsonPathError(null);
+  const updatePropRow = (index, field, value) => {
+    const updated = [...propFilters];
+    updated[index] = { ...updated[index], [field]: value };
+    setPropFilters(updated);
   };
 
   const handleItemClick = (path) => {
@@ -143,9 +165,17 @@ export function ConfigBrowser({
     onSelectPath(path);
   };
 
+  // Mutual exclusivity: JSONPath and property filters disable each other
+  const hasActivePropInput = propFilters.some(f => f.key.trim() || f.value.trim());
+  const hasActiveJsonPathInput = jsonPathQuery.trim().length > 0;
+  const isJsonPathDisabled = hasActivePropInput;
+  const isPropsDisabled = hasActiveJsonPathInput;
+
+  const hasAnyFilterInput = keySearch.trim().length > 0 || hasActiveJsonPathInput || hasActivePropInput;
+
   // Determine which paths to display
-  const displayPaths = searchResults !== null ? searchResults : immediateChildren;
-  const isShowingSearchResults = searchResults !== null;
+  const displayPaths = filterResults !== null ? filterResults : immediateChildren;
+  const isShowingFilterResults = filterResults !== null;
 
   return (
     <div className="config-browser">
@@ -157,7 +187,7 @@ export function ConfigBrowser({
               <span key={path}>
                 <button
                   className="breadcrumb-link"
-                  onClick={() => { onNavigateTo(path); clearSearch(); }}
+                  onClick={() => { onNavigateTo(path); clearFilters(); }}
                 >
                   {segment}
                 </button>
@@ -180,7 +210,7 @@ export function ConfigBrowser({
         }
         onNavigateTo(target);
         setGoToPath('');
-        clearSearch();
+        clearFilters();
       }}>
         <input
           type="text"
@@ -194,60 +224,77 @@ export function ConfigBrowser({
         </button>
       </form>
 
-      <form className="search-form" onSubmit={handleSearch}>
-        <input
-          type="text"
-          className="search-input"
-          placeholder="Search keys... (*, **, ?)"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <button type="submit" disabled={isSearching || !searchQuery.trim()}>
-          {isSearching ? '...' : 'Search'}
-        </button>
-        {isShowingSearchResults && (
-          <button type="button" onClick={clearSearch} className="clear-search">
-            Clear
-          </button>
-        )}
-      </form>
-
-      <form className="search-form" onSubmit={handleJsonPathSearch}>
-        <input
-          type="text"
-          className="search-input"
-          placeholder="JSONPath... $..field4"
-          value={jsonPathQuery}
-          onChange={(e) => setJsonPathQuery(e.target.value)}
-        />
-        <button type="submit" disabled={isJsonPathSearching || !jsonPathQuery.trim()}>
-          {isJsonPathSearching ? '...' : 'Query'}
-        </button>
-        {jsonPathResults !== null && (
-          <button type="button" onClick={clearJsonPath} className="clear-search">
-            Clear
-          </button>
-        )}
-      </form>
-
-      {jsonPathError && <div className="jsonpath-error">{jsonPathError}</div>}
-
-      {jsonPathResults !== null && (
-        <div className="jsonpath-results">
-          <div className="jsonpath-results-header">
-            Matching configurations
-          </div>
-          <pre className="jsonpath-results-content">
-            {JSON.stringify(jsonPathResults, null, 2)}
-          </pre>
+      <form className="filter-section" onSubmit={handleFilter}>
+        <div className="filter-group">
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Keys... (*, **, ?)"
+            value={keySearch}
+            onChange={(e) => setKeySearch(e.target.value)}
+          />
         </div>
-      )}
 
-      {searchError && <div className="search-error">{searchError}</div>}
+        <div className={`filter-group ${isJsonPathDisabled ? 'filter-disabled' : ''}`}>
+          <input
+            type="text"
+            className="search-input"
+            placeholder="JSONPath... $..field"
+            value={jsonPathQuery}
+            onChange={(e) => setJsonPathQuery(e.target.value)}
+            disabled={isJsonPathDisabled}
+          />
+        </div>
+
+        <div className={`filter-group filter-group-props ${isPropsDisabled ? 'filter-disabled' : ''}`}>
+          {propFilters.map((filter, index) => (
+            <div className="prop-filter-row" key={index}>
+              <input
+                type="text"
+                className="search-input prop-input"
+                placeholder="property"
+                value={filter.key}
+                onChange={(e) => updatePropRow(index, 'key', e.target.value)}
+                disabled={isPropsDisabled}
+              />
+              <span className="prop-equals">=</span>
+              <input
+                type="text"
+                className="search-input prop-input"
+                placeholder="value"
+                value={filter.value}
+                onChange={(e) => updatePropRow(index, 'value', e.target.value)}
+                disabled={isPropsDisabled}
+              />
+              {propFilters.length > 1 && (
+                <button type="button" className="prop-remove" onClick={() => removePropRow(index)} disabled={isPropsDisabled}>
+                  x
+                </button>
+              )}
+            </div>
+          ))}
+          <button type="button" className="prop-add" onClick={addPropRow} disabled={isPropsDisabled}>
+            + property
+          </button>
+        </div>
+
+        <div className="filter-actions">
+          <button type="submit" disabled={isFiltering || !hasAnyFilterInput}>
+            {isFiltering ? '...' : 'Filter'}
+          </button>
+          {(isShowingFilterResults || hasAnyFilterInput) && (
+            <button type="button" onClick={clearFilters} className="clear-search">
+              Clear
+            </button>
+          )}
+        </div>
+      </form>
+
+      {filterError && <div className="filter-error">{filterError}</div>}
 
       <div className="browser-toolbar">
         <button
-          onClick={() => { onNavigateUp(); clearSearch(); }}
+          onClick={() => { onNavigateUp(); clearFilters(); }}
           disabled={currentPath === '/config'}
           title="Go up"
         >
@@ -260,15 +307,15 @@ export function ConfigBrowser({
         >
           + New
         </button>
-        {isShowingSearchResults && (
-          <span className="search-count">{searchResults.length} results</span>
+        {isShowingFilterResults && (
+          <span className="search-count">{displayPaths.length} results</span>
         )}
       </div>
 
       <ul className="path-list">
         {displayPaths.length === 0 && (
           <li className="empty-message">
-            {isShowingSearchResults ? 'No matching configurations found' : 'No configurations found'}
+            {isShowingFilterResults ? 'No matching configurations found' : 'No configurations found'}
           </li>
         )}
         {displayPaths.map((path) => {
@@ -279,14 +326,14 @@ export function ConfigBrowser({
             <li
               key={path}
               className={`path-item ${selectedPath === path ? 'selected' : ''} ${hasChildren ? 'has-children' : ''}`}
-              onClick={() => isShowingSearchResults ? onSelectPath(path) : handleItemClick(path)}
+              onClick={() => isShowingFilterResults ? onSelectPath(path) : handleItemClick(path)}
               onDoubleClick={() => handleItemDoubleClick(path)}
             >
-              <span className="path-icon">{hasChildren && !isShowingSearchResults ? '/' : ''}</span>
+              <span className="path-icon">{hasChildren && !isShowingFilterResults ? '/' : ''}</span>
               <span className="path-name">
-                {isShowingSearchResults ? path : getDisplayName(path)}
+                {isShowingFilterResults ? path : getDisplayName(path)}
               </span>
-              {isExact && !isShowingSearchResults && <span className="path-badge">value</span>}
+              {isExact && !isShowingFilterResults && <span className="path-badge">value</span>}
             </li>
           );
         })}
