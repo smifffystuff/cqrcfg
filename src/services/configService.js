@@ -1,4 +1,5 @@
 import { LRUCache } from 'lru-cache';
+import { JSONPath } from 'jsonpath-plus';
 import { getStorage } from '../storage/index.js';
 import { matchesFilter } from '../storage/interface.js';
 import { buildTree, deepMerge } from '../utils/tree.js';
@@ -145,6 +146,26 @@ export async function getSubtreeWithFilter(basePath, filters) {
   }
 
   const matched = docs.filter(doc => matchesFilter(doc.data, filters));
+
+  if (matched.length === 0) {
+    return null;
+  }
+
+  return buildTree(matched, basePath);
+}
+
+export async function getSubtreeWithJsonPath(basePath, jsonPathExpr) {
+  const backend = getStorage();
+  const docs = await backend.getByPrefix(basePath);
+
+  if (docs.length === 0) {
+    return null;
+  }
+
+  const matched = docs.filter(doc => {
+    const results = JSONPath({ path: jsonPathExpr, json: doc.data });
+    return results.length > 0;
+  });
 
   if (matched.length === 0) {
     return null;

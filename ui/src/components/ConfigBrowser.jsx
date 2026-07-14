@@ -19,6 +19,10 @@ export function ConfigBrowser({
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState(null);
   const [goToPath, setGoToPath] = useState('');
+  const [jsonPathQuery, setJsonPathQuery] = useState('');
+  const [jsonPathResults, setJsonPathResults] = useState(null);
+  const [jsonPathError, setJsonPathError] = useState(null);
+  const [isJsonPathSearching, setIsJsonPathSearching] = useState(false);
 
   const getDisplayName = (path) => {
     const parts = path.split('/').filter(Boolean);
@@ -102,6 +106,30 @@ export function ConfigBrowser({
     setSearchError(null);
   };
 
+  const handleJsonPathSearch = async (e) => {
+    e.preventDefault();
+    if (!jsonPathQuery.trim() || !token) return;
+
+    setIsJsonPathSearching(true);
+    setJsonPathError(null);
+
+    try {
+      const result = await api.queryJsonPath(currentPath, jsonPathQuery.trim(), token);
+      setJsonPathResults(result);
+    } catch (err) {
+      setJsonPathError(err.message);
+      setJsonPathResults(null);
+    } finally {
+      setIsJsonPathSearching(false);
+    }
+  };
+
+  const clearJsonPath = () => {
+    setJsonPathQuery('');
+    setJsonPathResults(null);
+    setJsonPathError(null);
+  };
+
   const handleItemClick = (path) => {
     const hasChildren = paths.some((p) => p !== path && p.startsWith(path + '/'));
     if (hasChildren) {
@@ -183,6 +211,37 @@ export function ConfigBrowser({
           </button>
         )}
       </form>
+
+      <form className="search-form" onSubmit={handleJsonPathSearch}>
+        <input
+          type="text"
+          className="search-input"
+          placeholder="JSONPath... $..field4"
+          value={jsonPathQuery}
+          onChange={(e) => setJsonPathQuery(e.target.value)}
+        />
+        <button type="submit" disabled={isJsonPathSearching || !jsonPathQuery.trim()}>
+          {isJsonPathSearching ? '...' : 'Query'}
+        </button>
+        {jsonPathResults !== null && (
+          <button type="button" onClick={clearJsonPath} className="clear-search">
+            Clear
+          </button>
+        )}
+      </form>
+
+      {jsonPathError && <div className="jsonpath-error">{jsonPathError}</div>}
+
+      {jsonPathResults !== null && (
+        <div className="jsonpath-results">
+          <div className="jsonpath-results-header">
+            Matching configurations
+          </div>
+          <pre className="jsonpath-results-content">
+            {JSON.stringify(jsonPathResults, null, 2)}
+          </pre>
+        </div>
+      )}
 
       {searchError && <div className="search-error">{searchError}</div>}
 

@@ -4,6 +4,7 @@ import { normalizePathHook } from '../middleware/normalizePath.js';
 import {
   getSubtree,
   getSubtreeWithFilter,
+  getSubtreeWithJsonPath,
   getNode,
   listPaths,
   searchPaths,
@@ -81,14 +82,12 @@ export default async function configRoutes(fastify) {
   // Common preHandler hooks for all routes
   const commonHooks = [authHook, normalizePathHook];
 
-  // GET /config/*
+  // GET /config and GET /config/*
   // If path ends with '/', returns list of paths (requires 'list' permission)
   //   - Supports wildcards: * (single segment), ** (multi-segment), ? (single char)
   //   - Example: GET /config/app*/db/ matches /config/app1/db and /config/app2/db
   // Otherwise, returns the full JSON subtree (requires 'read' permission)
-  fastify.get('/*', {
-    preHandler: [authHook, normalizePathHook],
-  }, async (request, reply) => {
+  async function getHandler(request, reply) {
     const path = request.configPath;
     const originalUrl = request.url;
 
@@ -115,9 +114,46 @@ export default async function configRoutes(fastify) {
       const authzResult = await checkAuthz(request, reply, 'read');
       if (authzResult === false) return;
 
+      const { jsonPath, rev, ...filters } = request.query || {};
+
+      // jsonPath is mutually exclusive with key-value filters
+      if (jsonPath !== undefined) {
+        if (Object.keys(filters).length > 0) {
+          return reply.code(400).send({
+            error: 'Bad Request',
+            message: 'The jsonPath parameter cannot be combined with key-value filter parameters',
+          });
+        }
+
+        if (!jsonPath || typeof jsonPath !== 'string') {
+          return reply.code(400).send({
+            error: 'Bad Request',
+            message: 'The jsonPath parameter must be a non-empty string',
+          });
+        }
+
+        let tree;
+        try {
+          tree = await getSubtreeWithJsonPath(path, jsonPath);
+        } catch (err) {
+          return reply.code(400).send({
+            error: 'Bad Request',
+            message: `Invalid JSONPath expression: ${jsonPath} — ${err.message}`,
+          });
+        }
+
+        if (tree === null) {
+          return reply.code(404).send({
+            error: 'Not Found',
+            message: `No configuration found at path ${path} matching JSONPath: ${jsonPath}`,
+          });
+        }
+
+        return tree;
+      }
+
       // Apply query parameter filters at storage layer if any
-      const filters = request.query;
-      const hasFilters = filters && Object.keys(filters).length > 0;
+      const hasFilters = Object.keys(filters).length > 0;
 
       if (hasFilters) {
         const tree = await getSubtreeWithFilter(path, filters);
@@ -146,7 +182,10 @@ export default async function configRoutes(fastify) {
 
       return tree;
     }
-  });
+  }
+
+  fastify.get('/', { preHandler: [authHook, normalizePathHook] }, getHandler);
+  fastify.get('/*', { preHandler: [authHook, normalizePathHook] }, getHandler);
 
   // Shared handler for POST and PATCH - both do merge (preserve missing values)
   async function mergeHandler(request, reply) {

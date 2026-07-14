@@ -398,6 +398,117 @@ describe('Config API', async () => {
     assert.ok(body.keys.includes('/config/team1/app1/db'));
     assert.ok(body.keys.includes('/config/team2/app1/db'));
   });
+
+  it('should filter configs with jsonPath - matching document', async () => {
+    await fastify.inject({
+      method: 'PUT',
+      url: '/config/app1/db',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      payload: { host: 'localhost', port: 5432, ssl: true },
+    });
+
+    const response = await fastify.inject({
+      method: 'GET',
+      url: '/config/app1/db?jsonPath=$.host',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    assert.strictEqual(response.statusCode, 200);
+    const body = JSON.parse(response.body);
+    assert.strictEqual(body.host, 'localhost');
+    assert.strictEqual(body.port, 5432);
+  });
+
+  it('should filter configs with jsonPath - returns only matching documents', async () => {
+    await fastify.inject({
+      method: 'PUT',
+      url: '/config/app1/db',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      payload: { host: 'db1', port: 5432 },
+    });
+    await fastify.inject({
+      method: 'PUT',
+      url: '/config/app1/cache',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      payload: { host: 'redis', port: 6379 },
+    });
+
+    const response = await fastify.inject({
+      method: 'GET',
+      url: '/config/app1?jsonPath=$.port',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    assert.strictEqual(response.statusCode, 200);
+    const body = JSON.parse(response.body);
+    assert.strictEqual(body.db.host, 'db1');
+    assert.strictEqual(body.cache.host, 'redis');
+  });
+
+  it('should return 404 for jsonPath matching no documents', async () => {
+    await fastify.inject({
+      method: 'PUT',
+      url: '/config/app1/db',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      payload: { host: 'localhost' },
+    });
+
+    const response = await fastify.inject({
+      method: 'GET',
+      url: '/config/app1/db?jsonPath=$.nonexistent',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    assert.strictEqual(response.statusCode, 404);
+  });
+
+  it('should return 400 for invalid jsonPath expression', async () => {
+    await fastify.inject({
+      method: 'PUT',
+      url: '/config/app1/db',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      payload: { host: 'localhost' },
+    });
+
+    const response = await fastify.inject({
+      method: 'GET',
+      url: '/config/app1/db?jsonPath=$[?(',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    assert.strictEqual(response.statusCode, 400);
+    const body = JSON.parse(response.body);
+    assert.ok(body.message.includes('$[?('));
+  });
+
+  it('should return 404 when jsonPath used on non-existent path', async () => {
+    const response = await fastify.inject({
+      method: 'GET',
+      url: '/config/nonexistent?jsonPath=$.x',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    assert.strictEqual(response.statusCode, 404);
+  });
+
+  it('should return 400 when jsonPath combined with filter params', async () => {
+    await fastify.inject({
+      method: 'PUT',
+      url: '/config/app1/db',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      payload: { host: 'localhost' },
+    });
+
+    const response = await fastify.inject({
+      method: 'GET',
+      url: '/config/app1/db?jsonPath=$.host&key=val',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    assert.strictEqual(response.statusCode, 400);
+    const body = JSON.parse(response.body);
+    assert.ok(body.message.includes('cannot be combined'));
+  });
 });
 
 describe('Authorization', async () => {

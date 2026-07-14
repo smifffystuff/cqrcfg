@@ -104,6 +104,16 @@ export const api = {
     return result;
   },
 
+  async queryJsonPath(path, jsonPathExpr, token) {
+    const url = `${API_BASE}${path}?jsonPath=${encodeURIComponent(jsonPathExpr)}`;
+    const response = await fetch(url, {
+      headers: getAuthHeaders(token),
+      credentials: isProxyAuthMode ? 'include' : 'same-origin',
+    });
+    const res = await handleResponse(response);
+    return res.json();
+  },
+
   async deleteConfig(path, token) {
     const url = `${API_BASE}${path}`;
     const response = await fetch(url, {
