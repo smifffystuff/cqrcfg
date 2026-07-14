@@ -172,4 +172,8 @@ export class StorageInterface {
   async searchPaths(pattern) {
     throw new Error('Not implemented');
   }
+
+  async promote(path, targetBranch, options) {
+    throw new Error('Not implemented');
+  }
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { PromoteButton } from './PromoteButton';
 
-export function ConfigEditor({ path, data, onSave, onForceSave, onDelete, onReload, onClose, canWrite, remoteChange }) {
+export function ConfigEditor({ path, data, onSave, onForceSave, onDelete, onPromote, onReload, onClose, canWrite, remoteChange }) {
   const [editMode, setEditMode] = useState('form'); // 'form' or 'json'
   const [jsonText, setJsonText] = useState('');
   const [formData, setFormData] = useState({});
@@ -206,14 +207,17 @@ export function ConfigEditor({ path, data, onSave, onForceSave, onDelete, onRelo
       </div>
 
       <div className="editor-footer">
-        <button
-          className="btn-delete"
-          onClick={() => onDelete(path)}
-          disabled={!canWrite}
-          title={canWrite ? 'Delete configuration' : 'No write permission'}
-        >
-          Delete
-        </button>
+        <div className="editor-footer-left">
+          <button
+            className="btn-delete"
+            onClick={() => onDelete(path)}
+            disabled={!canWrite}
+            title={canWrite ? 'Delete configuration' : 'No write permission'}
+          >
+            Delete
+          </button>
+          {canWrite && <PromoteButton path={path} onPromote={onPromote} />}
+        </div>
         <div className="editor-footer-right">
           {hasChanges && canWrite && (
             <button onClick={handleReset}>Reset</button>

@@ -266,6 +266,21 @@ function App() {
     }
   };
 
+  const promoteConfig = async (path) => {
+    if (!token) return;
+
+    setError(null);
+
+    try {
+      const result = await api.promoteConfig(path, token);
+      setError(null);
+      alert(`Successfully promoted ${path} to branch "${result.targetBranch}"`);
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
   const createConfig = async (path, data) => {
     if (!token) return;
 
@@ -356,6 +371,7 @@ function App() {
               onSave={saveConfig}
               onForceSave={forceSaveConfig}
               onDelete={deleteConfig}
+              onPromote={promoteConfig}
               onReload={reloadConfig}
               onClose={() => {
                 setSelectedPath(null);

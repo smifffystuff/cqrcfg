@@ -31,6 +31,7 @@ window.__CQRCFG_USERNAME_CLAIM__ = '${process.env.UI_USERNAME_CLAIM || 'sub'}';
 window.__CQRCFG_ACL_CLAIM__ = '${process.env.OIDC_ACL_CLAIM || process.env.UI_ACL_CLAIM || 'cqrcfg_acl'}';
 window.__CQRCFG_ACL_CACHE_TTL__ = ${process.env.OIDC_ACL_CACHE_TTL || process.env.UI_ACL_CACHE_TTL || 300};
 window.__CQRCFG_GIT_BRANCH__ = '${process.env.GIT_BRANCH || ''}';
+window.__CQRCFG_GIT_PROMOTION_BRANCH__ = '${process.env.GIT_PROMOTION_BRANCH || ''}';
 `;
 
 const fastify = Fastify({

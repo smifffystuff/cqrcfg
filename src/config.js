@@ -32,6 +32,7 @@ export const config = {
       userEmail: process.env.GIT_USER_EMAIL || 'cqrcfg@localhost',
       commitNameClaim: process.env.GIT_COMMIT_NAME_CLAIM || '',
       commitEmailClaim: process.env.GIT_COMMIT_EMAIL_CLAIM || '',
+      promotionBranch: process.env.GIT_PROMOTION_BRANCH || '',
       encryption: {
         salt: process.env.GIT_ENCRYPTION_SALT || '',
         password: process.env.GIT_ENCRYPTION_PASSWORD || '',
