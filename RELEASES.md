@@ -1,5 +1,13 @@
 # Releases
 
+## v1.0.0-build.36 — 2026-07-14
+
+- Unify filter UI into a single section with Keys, JSONPath, and property/value filters
+- All filter results now display in the same path list instead of a separate panel
+- Add property/value filter UI with dynamic add/remove rows (leverages existing backend query parameter filtering)
+- JSONPath and property filters are mutually exclusive — entering one disables the other
+- Add JSONPath query support to the backend API (`?jsonPath=` parameter)
+
 ## v1.0.0-build.35 — 2026-07-06
 
 - Display configured git branch in UI breadcrumb (only when GIT_BRANCH is set in .env)
