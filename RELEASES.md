@@ -1,5 +1,9 @@
 # Releases
 
+## v1.0.0-build.37 — 2026-07-14
+
+- Refactor path extraction logic in ConfigBrowser for cleaner code
+
 ## v1.0.0-build.36 — 2026-07-14
 
 - Unify filter UI into a single section with Keys, JSONPath, and property/value filters
