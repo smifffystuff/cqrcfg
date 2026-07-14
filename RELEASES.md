@@ -1,5 +1,9 @@
 # Releases
 
+## v1.0.0-build.38 — 2026-07-14
+
+- Add config promotion feature for copying configuration between branches/environments
+
 ## v1.0.0-build.37 — 2026-07-14
 
 - Refactor path extraction logic in ConfigBrowser for cleaner code
