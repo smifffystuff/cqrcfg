@@ -894,5 +894,3 @@ All errors return JSON:
 ## License
 
 MIT
-
-Test for gh auth
