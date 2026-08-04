@@ -22,6 +22,7 @@ window.__CQRCFG_NAME_CLAIM__ = '${env.UI_NAME_CLAIM || 'sub'}';
 window.__CQRCFG_USERNAME_CLAIM__ = '${env.UI_USERNAME_CLAIM || 'sub'}';
 window.__CQRCFG_GIT_BRANCH__ = '${env.GIT_BRANCH || ''}';
 window.__CQRCFG_GIT_PROMOTION_BRANCH__ = '${env.GIT_PROMOTION_BRANCH || ''}';
+window.__CQRCFG_AUTH_DISABLED__ = '${env.AUTH_DISABLED || ''}';
 `);
       });
     },

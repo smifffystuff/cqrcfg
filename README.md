@@ -48,7 +48,7 @@ cp .env.example .env
 ```
 
 Required configuration:
-- `OIDC_JWKS_URIS` or `OIDC_ISSUERS` - At least one JWKS source for token verification
+- `OIDC_JWKS_URIS` or `OIDC_ISSUERS` - At least one JWKS source for token verification (not required when `AUTH_DISABLED=true`)
 
 ### 3. Start the server
 
@@ -329,6 +329,7 @@ In proxy auth mode:
 | `HOST` | `0.0.0.0` | Server host |
 | `SHUTDOWN_DELAY` | `0` | Delay in ms before `process.exit` after graceful shutdown (useful for flushing async log transports) |
 | `AUTH_TOKEN_HEADER` | `authorization` | Header name to read the JWT from |
+| `AUTH_DISABLED` | `false` | Disable authentication; unauthenticated requests get full anonymous access. Tokens are still verified if present. |
 | `AUTH_BEARER_PREFIX` | `true` | Expect `Bearer ` prefix on the token; set to `false` to read the raw JWT directly |
 | `OIDC_JWKS_URIS` | (optional) | Comma-separated direct JWKS endpoint URLs |
 | `OIDC_ISSUERS` | (optional) | Comma-separated OIDC issuer URLs (fetches JWKS from each issuer's well-known endpoint) |
@@ -338,7 +339,7 @@ In proxy auth mode:
 | `OIDC_ACL_CLAIM` | `cqrcfg_acl` | JWT claim for ACL (array, JSON string, or URL) |
 | `OIDC_ACL_CACHE_TTL` | `300` | Cache TTL in seconds for ACL fetched from URLs |
 
-**Note:** At least one of `OIDC_JWKS_URIS` or `OIDC_ISSUERS` must be configured. Keys from all sources are combined for JWT verification. JWKS keys are cached and refreshed every `OIDC_JWKS_CACHE_TTL` seconds (default 120s) to support key rotation.
+**Note:** At least one of `OIDC_JWKS_URIS` or `OIDC_ISSUERS` must be configured unless `AUTH_DISABLED=true`. Keys from all sources are combined for JWT verification. JWKS keys are cached and refreshed every `OIDC_JWKS_CACHE_TTL` seconds (default 120s) to support key rotation.
 
 ### Storage Settings
 

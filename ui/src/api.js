@@ -5,6 +5,9 @@ const AUTH_PATTERN = window.__CQRCFG_AUTH_PATTERN__ || '';
 // Check if proxy auth mode is enabled
 export const isProxyAuthMode = !!AUTH_HEADER;
 
+// Check if auth is disabled (anonymous access)
+export const isAuthDisabled = window.__CQRCFG_AUTH_DISABLED__ === 'true';
+
 export class ConflictError extends Error {
   constructor(message, currentRevision) {
     super(message);
@@ -16,6 +19,9 @@ export class ConflictError extends Error {
 function getAuthHeaders(token) {
   // In proxy auth mode, don't send Authorization header (proxy handles it)
   if (isProxyAuthMode) {
+    return {};
+  }
+  if (isAuthDisabled) {
     return {};
   }
   return token ? { Authorization: `Bearer ${token}` } : {};

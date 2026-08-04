@@ -4,7 +4,7 @@ import { ConfigBrowser } from './components/ConfigBrowser';
 import { ConfigEditor } from './components/ConfigEditor';
 import { TokenInput } from './components/TokenInput';
 import { ThemeToggle } from './components/ThemeToggle';
-import { api, isProxyAuthMode, ConflictError } from './api';
+import { api, isProxyAuthMode, isAuthDisabled, ConflictError } from './api';
 
 // Runtime config
 const envName = window.__CQRCFG_ENV__ || '';
@@ -46,6 +46,7 @@ function hasWritePermission(permissions, path) {
 
 function App() {
   const [token, setToken] = useState(() => {
+    if (isAuthDisabled) return '__AUTH_DISABLED__';
     // In proxy auth mode, start with empty token (will be fetched or assumed present)
     if (isProxyAuthMode) return '__PROXY_AUTH__';
     return localStorage.getItem('cqrcfg_token') || '';
@@ -78,6 +79,9 @@ function App() {
 
   // Parse permissions from JWT - could be array, JSON string, or URL
   const rawAcl = useMemo(() => {
+    if (isAuthDisabled) {
+      return [{ path: '/config', allow: ['read', 'write', 'list'] }];
+    }
     if (isProxyAuthMode) {
       return [{ path: '/config', allow: ['read', 'write', 'list'] }];
     }
@@ -128,6 +132,7 @@ function App() {
 
   // Get user display info from JWT claims
   const userInfo = useMemo(() => {
+    if (isAuthDisabled) return { name: 'Anonymous', username: 'anonymous' };
     if (!jwtPayload) return null;
     const name = jwtPayload[nameClaim] || jwtPayload.sub || '';
     const username = jwtPayload[usernameClaim] || jwtPayload.sub || '';
@@ -330,7 +335,7 @@ function App() {
               {userInfo.name}
             </span>
           )}
-          {!isProxyAuthMode && (
+          {!isProxyAuthMode && !isAuthDisabled && (
             <TokenInput token={token} onTokenChange={handleTokenChange} />
           )}
           {isProxyAuthMode && !userInfo && (

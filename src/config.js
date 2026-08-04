@@ -74,6 +74,7 @@ export const config = {
     },
   },
   auth: {
+    disabled: process.env.AUTH_DISABLED === 'true',
     tokenHeader: (process.env.AUTH_TOKEN_HEADER || 'authorization').toLowerCase(),
     bearerPrefix: process.env.AUTH_BEARER_PREFIX !== 'false',
   },
@@ -116,7 +117,7 @@ export function validateConfig() {
   const hasJwksUris = config.oidc.jwksUris.length > 0;
   const hasIssuers = config.oidc.issuers.length > 0;
 
-  if (!hasJwksUris && !hasIssuers) {
+  if (!config.auth.disabled && !hasJwksUris && !hasIssuers) {
     errors.push('At least one of OIDC_JWKS_URIS or OIDC_ISSUERS is required');
   }
 

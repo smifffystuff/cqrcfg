@@ -340,6 +340,15 @@ export async function authHook(request, reply) {
   const headerName = config.auth.tokenHeader;
   const headerValue = request.headers[headerName];
 
+  if (config.auth.disabled && !headerValue) {
+    request.user = {
+      sub: 'anonymous',
+      permissions: [{ path: '/config', allow: ['read', 'write', 'list'] }],
+      claims: { sub: 'anonymous' },
+    };
+    return;
+  }
+
   if (!headerValue) {
     return reply.code(401).send({
       error: 'Unauthorized',
