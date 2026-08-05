@@ -85,15 +85,11 @@ npm run ui:build
 
 The UI development server will be available at `http://localhost:5173` and requires a valid JWT token with appropriate permissions (`read`, `write`, `list`) to browse and edit configurations.
 
-### Environment Themes
+### Themes
 
-The UI supports runtime theming to visually distinguish between environments (dev, int, prod). Themes are CSS files that override CSS variables. The theme toggle cycles between Light, Dark, and Auto (system preference).
+The UI supports Light, Dark, and Auto (system preference) themes via the theme toggle. Themes are CSS files (`ui/public/themes/light.css`, `dark.css`) that define CSS variables.
 
-**Available themes:**
-- `ui/public/themes/light.css`, `dark.css` - Default (no env)
-- `ui/public/themes/dev-light.css`, `dev-dark.css` - Development (green accent)
-- `ui/public/themes/int-light.css`, `int-dark.css` - Integration (blue accent)
-- `ui/public/themes/prod-light.css`, `prod-dark.css` - Production (red accent)
+To visually distinguish environments, use the `UI_NAV_BG_COLOR` and `UI_NAV_TEXT_COLOR` environment variables to set the navigation bar colors per deployment.
 
 **CSS Variables:**
 ```css
@@ -109,8 +105,6 @@ The UI supports runtime theming to visually distinguish between environments (de
   --warning: #ff9800;
   --error: #f44336;
   --border: #2a2a4a;
-  --env-badge-bg: #e94560;    /* Environment badge background */
-  --env-badge-text: #ffffff;  /* Environment badge text */
 }
 ```
 
@@ -258,6 +252,8 @@ The UI is configured via environment variables that generate a runtime config.js
 | `UI_USERNAME_CLAIM` | `sub` | JWT claim to use for username (shown on hover if different from name) |
 | `OIDC_ACL_CLAIM` | `cqrcfg_acl` | JWT claim for ACL (array, JSON string, or URL) |
 | `OIDC_ACL_CACHE_TTL` | `300` | Cache TTL in seconds for ACL fetched from URLs |
+| `UI_NAV_BG_COLOR` | `seagreen` | Navigation bar background color (any CSS color value) |
+| `UI_NAV_TEXT_COLOR` | `white` | Navigation bar text color (any CSS color value) |
 
 **Examples:**
 
@@ -303,21 +299,11 @@ In proxy auth mode:
    :root {
      --bg-primary: #1a1a2e;
      --accent: #e94560;
-     --env-badge-bg: #e94560;
      /* ... other variables */
    }
    ```
 
-2. Create a config.js file:
-   ```javascript
-   window.__CQRCFG_ENV__ = 'my-env';
-   window.__CQRCFG_API_URL__ = '/api';  // or 'http://api.example.com'
-   ```
-
-3. Start with custom paths:
-   ```bash
-   UI_THEME=./my-theme.css UI_CONFIG=./my-config.js docker compose up -d
-   ```
+2. Place it in `ui/public/themes/` as `light.css` or `dark.css` (or mount it over the existing file in Docker).
 
 ## Configuration
 

@@ -1,18 +1,13 @@
 import { useState, useEffect } from 'react';
 
 const THEME_KEY = 'cqrcfg_theme';
-const envName = window.__CQRCFG_ENV__ || '';
 
 function getSystemTheme() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 function getThemeFilename(mode) {
-  const effectiveMode = mode === 'system' ? getSystemTheme() : mode;
-  if (envName) {
-    return `${envName}-${effectiveMode}`;
-  }
-  return effectiveMode;
+  return mode === 'system' ? getSystemTheme() : mode;
 }
 
 function applyTheme(mode) {

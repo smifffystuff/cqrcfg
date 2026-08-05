@@ -12,6 +12,8 @@ const nameClaim = window.__CQRCFG_NAME_CLAIM__ || 'sub';
 const usernameClaim = window.__CQRCFG_USERNAME_CLAIM__ || 'sub';
 const aclClaim = window.__CQRCFG_ACL_CLAIM__ || 'cqrcfg_acl';
 const aclCacheTtl = (window.__CQRCFG_ACL_CACHE_TTL__ || 300) * 1000;
+const navBgColor = window.__CQRCFG_NAV_BG_COLOR__ || 'seagreen';
+const navTextColor = window.__CQRCFG_NAV_TEXT_COLOR__ || 'white';
 
 // Cache for permissions fetched from URLs
 const aclUrlCache = new Map();
@@ -320,7 +322,7 @@ function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
+      <header className="app-header" style={{ background: navBgColor, color: navTextColor }}>
         <h1>Config Manager</h1>
         {envName && <span className="env-badge">{envName}</span>}
         <div className="header-controls">

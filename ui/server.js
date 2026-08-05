@@ -32,6 +32,8 @@ window.__CQRCFG_ACL_CLAIM__ = '${process.env.OIDC_ACL_CLAIM || process.env.UI_AC
 window.__CQRCFG_ACL_CACHE_TTL__ = ${process.env.OIDC_ACL_CACHE_TTL || process.env.UI_ACL_CACHE_TTL || 300};
 window.__CQRCFG_GIT_BRANCH__ = '${process.env.GIT_BRANCH || ''}';
 window.__CQRCFG_GIT_PROMOTION_BRANCH__ = '${process.env.GIT_PROMOTION_BRANCH || ''}';
+window.__CQRCFG_NAV_BG_COLOR__ = '${process.env.UI_NAV_BG_COLOR || 'seagreen'}';
+window.__CQRCFG_NAV_TEXT_COLOR__ = '${process.env.UI_NAV_TEXT_COLOR || 'white'}';
 `;
 
 const fastify = Fastify({

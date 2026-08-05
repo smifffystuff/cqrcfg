@@ -66,6 +66,8 @@ services:
       - UI_USERNAME_CLAIM=${UI_USERNAME_CLAIM:-sub}
       - OIDC_ACL_CLAIM=${OIDC_ACL_CLAIM:-cqrcfg_acl}
       - OIDC_ACL_CACHE_TTL=${OIDC_ACL_CACHE_TTL:-300}
+      - UI_NAV_BG_COLOR=${UI_NAV_BG_COLOR:-}
+      - UI_NAV_TEXT_COLOR=${UI_NAV_TEXT_COLOR:-}
     depends_on:
       - cqrcfg
 

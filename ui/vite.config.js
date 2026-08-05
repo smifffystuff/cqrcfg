@@ -22,6 +22,8 @@ window.__CQRCFG_NAME_CLAIM__ = '${env.UI_NAME_CLAIM || 'sub'}';
 window.__CQRCFG_USERNAME_CLAIM__ = '${env.UI_USERNAME_CLAIM || 'sub'}';
 window.__CQRCFG_GIT_BRANCH__ = '${env.GIT_BRANCH || ''}';
 window.__CQRCFG_GIT_PROMOTION_BRANCH__ = '${env.GIT_PROMOTION_BRANCH || ''}';
+window.__CQRCFG_NAV_BG_COLOR__ = '${env.UI_NAV_BG_COLOR || 'seagreen'}';
+window.__CQRCFG_NAV_TEXT_COLOR__ = '${env.UI_NAV_TEXT_COLOR || 'white'}';
 `);
       });
     },

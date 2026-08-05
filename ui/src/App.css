@@ -29,7 +29,7 @@ body {
 .app-header h1 {
   margin: 0;
   font-size: 1.5rem;
-  color: var(--accent);
+  color: inherit;
 }
 
 .header-controls {
@@ -64,8 +64,8 @@ body {
 
 .env-badge {
   padding: 0.25rem 0.75rem;
-  background: var(--env-badge-bg);
-  color: var(--env-badge-text);
+  background: rgba(0, 0, 0, 0.2);
+  color: inherit;
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 600;
@@ -277,8 +277,8 @@ button.btn-delete:hover {
 .branch-badge {
   margin-left: 0.75rem;
   padding: 0.125rem 0.5rem;
-  background: var(--env-badge-bg);
-  color: var(--env-badge-text);
+  background: rgba(0, 0, 0, 0.2);
+  color: inherit;
   border-radius: 4px;
   font-size: 0.7rem;
   font-weight: 600;
