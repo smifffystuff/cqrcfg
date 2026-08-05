@@ -1,5 +1,9 @@
 # Releases
 
+## v1.0.0-build.40 — 2026-08-05
+
+- Add ability to totally disable auth requirements
+
 ## v1.0.0-build.38 — 2026-07-14
 
 - Add config promotion feature for copying configuration between branches/environments
