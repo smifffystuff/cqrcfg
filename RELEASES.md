@@ -1,5 +1,10 @@
 # Releases
 
+## v1.0.0-build.41 — 2026-08-05
+
+- Add configurable nav bar colors via `UI_NAV_BG_COLOR` and `UI_NAV_TEXT_COLOR` environment variables (defaults: seagreen/white)
+- Remove per-environment theme CSS files — environment distinction is now handled by nav bar color
+
 ## v1.0.0-build.40 — 2026-08-05
 
 - Add ability to totally disable auth requirements
